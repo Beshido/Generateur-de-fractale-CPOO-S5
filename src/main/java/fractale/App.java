@@ -3,12 +3,88 @@
  */
 package fractale;
 
-public class App {
-    public String getGreeting() {
-        return "Hello world.";
-    }
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.util.function.Function;
 
-    public static void main(String[] args) {
-        System.out.println(new App().getGreeting());
-    }
+import javax.imageio.ImageIO;
+
+public class App {
+
+	public String getGreeting() {
+		return "Hello world.";
+	}
+
+	// f (z) = z^2 + c avec c = −0.7269 + 0.1889i
+	public static Complex f0(Complex c) {
+		return c.mul(c).add(new Complex(-0.7269, 0.1889));
+	}
+
+	//	MAX_ITER=1000; RADIUS=2.;
+	//	int divergenceIndex(Complex z0) {
+	//	int ite = 0; Complex zn = z0;
+	//	// sortie de boucle si divergence
+	//	while (ite < MAX_ITER-1 && |zn| <= RADIUS)
+	//	zn = f(zn); ite++;
+	//	return ite;
+	//	}
+	public static int divergenceIndex (Complex c) { 
+		int MAX_ITER=1000;
+		double RADIUS=2.;
+		int ite = 0; 
+		Complex zn = c;
+		// sortie de boucle si divergence
+		while (ite < MAX_ITER-1 && zn.getModule() <= RADIUS) { 
+			zn = f0(zn);
+			ite++;
+		}
+		return ite;
+	}
+	
+	public static int divergenceIndex (Function<Complex, Complex> f, Complex c) { 
+		int MAX_ITER=1000;
+		double RADIUS=2.;
+		int ite = 0; 
+		Complex zn = c;
+		// sortie de boucle si divergence
+		while (ite < MAX_ITER-1 && zn.getModule() <= RADIUS) { 
+			zn = f.apply(zn);
+			ite++;
+		}
+		return ite;
+	}
+	
+	public static void generateFractaleImage(String outputFile, FractaleRenderConfig config, Function<Complex,Complex> f)  throws IOException {
+//		int outputWidth = 1001;
+//		int outputHeight = 1001;
+//		double minReal = -1;
+//		double maxReal = 1;
+//		double minImaginary = -1;
+//		double maxImaginary = 1;
+//		double xStep = (maxReal - minReal) / (outputWidth-1);
+//		double yStep = (maxImaginary - minImaginary) / (outputHeight-1);
+		//        int xStepCount;
+		//        int yStepCount;
+
+		BufferedImage img = new BufferedImage(config.outputWidth, config.outputHeight, BufferedImage.TYPE_INT_RGB);
+
+		for (int i=0; i< config.outputWidth; i++) { 
+			for (int j = 0; j< config.outputHeight; j++) { 
+				int ite = divergenceIndex(f, new Complex(config.minReal + i * config.xStep, config.minImaginary + j * config.yStep));
+				int r = 64; int g = 224; int b = 208; //turquoise
+				int col = ite * 317; //(r << 16) | (g << 8) | b;
+				img.setRGB(i, j, col);
+			}
+		}
+		ImageIO.write(img, "PNG", new File(outputFile));
+	}
+	
+	
+	public static void main(String[] args) throws IOException {
+		System.out.println(new App().getGreeting());
+		FractaleRenderConfig c = FractaleRenderConfig.createSimple(1001, -1, 1);
+		generateFractaleImage("MyFile.png", c, App::f0);
+	}
+
 }
