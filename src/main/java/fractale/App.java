@@ -3,6 +3,10 @@
  */
 package fractale;
 
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -11,6 +15,9 @@ import java.util.function.Function;
 import javax.imageio.ImageIO;
 
 public class App {
+
+	private static final int MAX_ITER = 1000;
+
 
 	public String getGreeting() {
 		return "Hello world.";
@@ -43,7 +50,6 @@ public class App {
 	}
 	
 	public static int divergenceIndex (Function<Complex, Complex> f, Complex c) { 
-		int MAX_ITER=1000;
 		double RADIUS=2.;
 		int ite = 0; 
 		Complex zn = c;
@@ -55,7 +61,21 @@ public class App {
 		return ite;
 	}
 	
-	public static void generateFractaleImage(String outputFile, FractaleRenderConfig config, Function<Complex,Complex> f)  throws IOException {
+	public static Color colorScheme0(int iterations) {
+//		return new Color(0, 0, Math.min(255, iterations));
+//		return new Color(((iterations / 256) % 256) * 64, 0, iterations % 256);
+		return new Color(0, 0, (255*iterations)/MAX_ITER);
+	}
+	
+	public static Color colorScheme1(int iterations) {
+//		return new Color(0, 0, Math.min(255, iterations));
+//		return new Color(((iterations / 256) % 256) * 64, 0, iterations % 256);
+		return new Color(Color.HSBtoRGB((float)iterations/MAX_ITER, 0.7f, 0.7f));
+	}
+	
+	
+	
+	public static void generateFractaleImage(String outputFile, FractaleRenderConfig config, Function<Complex,Complex> f, Function<Integer, Color> c)  throws IOException {
 //		int outputWidth = 1001;
 //		int outputHeight = 1001;
 //		double minReal = -1;
@@ -72,11 +92,31 @@ public class App {
 		for (int i=0; i< config.outputWidth; i++) { 
 			for (int j = 0; j< config.outputHeight; j++) { 
 				int ite = divergenceIndex(f, new Complex(config.minReal + i * config.xStep, config.minImaginary + j * config.yStep));
-				int r = 64; int g = 224; int b = 208; //turquoise
-				int col = ite * 317; //(r << 16) | (g << 8) | b;
+//				int r = 64; int g = 224; int b = 208; //turquoise
+//				int col = ite * 317; //(r << 16) | (g << 8) | b;
+//				Color color = Color.RED;
+//				Color color = c0(ite);
+				Color color = c.apply(ite);
+				int col = color.getRGB();
 				img.setRGB(i, j, col);
 			}
 		}
+		
+//		BufferedImage dbi = null;
+//		dbi = new BufferedImage(1001, 1001, img.getType());
+//	    Graphics2D g = dbi.createGraphics();
+////	    g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+//	    g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+//	    g.setRenderingHint(RenderingHints.KEY_RENDERING	, RenderingHints.VALUE_RENDER_QUALITY);
+//	    g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,	RenderingHints.VALUE_ANTIALIAS_ON); 
+//	    g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+////	    AffineTransform at = AffineTransform.getScaleInstance(1/3.0, 1/3.0);
+////	    g.drawRenderedImage(img, at);
+//	    g.drawImage(img, 0, 0, 1001, 1001, null);
+//        g.dispose();
+//
+//	    img = dbi;
+	    
 		ImageIO.write(img, "PNG", new File(outputFile));
 	}
 	
@@ -84,7 +124,8 @@ public class App {
 	public static void main(String[] args) throws IOException {
 		System.out.println(new App().getGreeting());
 		FractaleRenderConfig c = FractaleRenderConfig.createSimple(1001, -1, 1);
-		generateFractaleImage("MyFile.png", c, App::f0);
+		generateFractaleImage("MyFile.png", c, App::f0, App::colorScheme1);
+		
 	}
 
 }
