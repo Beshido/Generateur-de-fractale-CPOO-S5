@@ -23,5 +23,12 @@ public class FractaleRenderConfig {
 		c.yStep = (c.maxImaginary - c.minImaginary) / (c.outputHeight-1);
 		return c;
 	}
+
+	public void setOutputSize(int w, int h) {
+		outputWidth = w;
+		outputHeight = h;
+		xStep = (maxReal - minReal) / (outputWidth-1);
+		yStep = (maxImaginary - minImaginary) / (outputHeight-1);
+	}
 	
 }

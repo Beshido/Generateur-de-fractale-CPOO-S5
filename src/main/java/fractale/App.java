@@ -3,8 +3,13 @@
  */
 package fractale;
 
+import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.GridBagLayout;
+import java.awt.GridLayout;
 import java.awt.RenderingHints;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
@@ -13,10 +18,72 @@ import java.io.IOException;
 import java.util.function.Function;
 
 import javax.imageio.ImageIO;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
+
+class ImagePanel extends JPanel {
+
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	BufferedImage img;
+	FractaleRenderConfig config;
+	Function<Complex,Complex> f;
+	Function<Integer, Color> c;
+	
+	
+	public ImagePanel(FractaleRenderConfig config, Function<Complex,Complex> f, Function<Integer, Color> c ) { 
+		this.img = App.generateFractaleImage(config, f, c);
+		this.config = config;
+		this.f = f;
+		this.c = c;
+	}
+	
+	
+	public void paintComponent(Graphics g) {
+		int w = getWidth();
+		int h = getHeight();
+		if (img == null || w != img.getWidth() || h != img.getHeight()) {
+			config.setOutputSize( w, h);
+			g.clearRect(0, 0, w, h);
+			this.img = App.generateFractaleImage(config, f, c);
+		}
+//		Graphics2D g_ = (Graphics2D)g;
+//			    g_.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+////	    g_.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+//	    g_.setRenderingHint(RenderingHints.KEY_RENDERING	, RenderingHints.VALUE_RENDER_QUALITY);
+//	    g_.setRenderingHint(RenderingHints.KEY_ANTIALIASING,	RenderingHints.VALUE_ANTIALIAS_ON); 
+//	    g_.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+//
+//		g.drawImage(img, 0, 0, w, h, null);
+		g.drawImage(img, 0, 0, null);
+	}
+
+
+	public void setColorScheme(ColorScheme colorScheme) {
+		this.c = colorScheme.f;
+		img = null;
+		repaint();
+	}
+
+
+	public void setFunction(Function<Complex, Complex> f2) {
+		this.f = f2;
+		img = null;
+		repaint();
+	}
+	
+}
 
 public class App {
 
-	private static final int MAX_ITER = 1000;
+	static final int MAX_ITER = 1000;
 
 
 	public String getGreeting() {
@@ -61,21 +128,7 @@ public class App {
 		return ite;
 	}
 	
-	public static Color colorScheme0(int iterations) {
-//		return new Color(0, 0, Math.min(255, iterations));
-//		return new Color(((iterations / 256) % 256) * 64, 0, iterations % 256);
-		return new Color(0, 0, (255*iterations)/MAX_ITER);
-	}
-	
-	public static Color colorScheme1(int iterations) {
-//		return new Color(0, 0, Math.min(255, iterations));
-//		return new Color(((iterations / 256) % 256) * 64, 0, iterations % 256);
-		return new Color(Color.HSBtoRGB((float)iterations/MAX_ITER, 0.7f, 0.7f));
-	}
-	
-	
-	
-	public static void generateFractaleImage(String outputFile, FractaleRenderConfig config, Function<Complex,Complex> f, Function<Integer, Color> c)  throws IOException {
+	public static BufferedImage generateFractaleImage(FractaleRenderConfig config, Function<Complex,Complex> f, Function<Integer, Color> c) {
 //		int outputWidth = 1001;
 //		int outputHeight = 1001;
 //		double minReal = -1;
@@ -87,6 +140,7 @@ public class App {
 		//        int xStepCount;
 		//        int yStepCount;
 
+		System.out.println("generating fractal image " + config.outputWidth + "x" + config.outputHeight);
 		BufferedImage img = new BufferedImage(config.outputWidth, config.outputHeight, BufferedImage.TYPE_INT_RGB);
 
 		for (int i=0; i< config.outputWidth; i++) { 
@@ -116,16 +170,66 @@ public class App {
 //        g.dispose();
 //
 //	    img = dbi;
-	    
-		ImageIO.write(img, "PNG", new File(outputFile));
+		System.out.println("-- generated fractal image " + config.outputWidth + "x" + config.outputHeight);
+		return img;
 	}
 	
 	
 	public static void main(String[] args) throws IOException {
 		System.out.println(new App().getGreeting());
 		FractaleRenderConfig c = FractaleRenderConfig.createSimple(1001, -1, 1);
-		generateFractaleImage("MyFile.png", c, App::f0, App::colorScheme1);
-		
+//		BufferedImage img = generateFractaleImage(c, App::f0, App::colorScheme1);
+//		ImageIO.write(img, "PNG", new File("MyFile.png"));
+		main_(args);
 	}
+    /**
+     * Create the GUI and show it.  For thread safety,
+     * this method should be invoked from the
+     * event-dispatching thread.
+     */
+    private static void createAndShowGUI() {
+        //Create and set up the window.
+        JFrame frame = new JFrame("FrameDemo");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        FractaleRenderConfig c = FractaleRenderConfig.createSimple(1001, -1, 1);
+//        BufferedImage img = generateFractaleImage(c, App::f0, ColorScheme::colorScheme1);
+        ImagePanel emptyLabel = new ImagePanel(c, App::f0, ColorScheme::colorScheme0);
+        emptyLabel.setPreferredSize(new Dimension(1001, 1001));
+        frame.getContentPane().add(emptyLabel, BorderLayout.CENTER);
+        emptyLabel.setBackground(Color.GREEN);
+        JPanel leftPanel = new JPanel();
+        leftPanel.setLayout(new GridLayout(0, 1));
+        frame.getContentPane().add(leftPanel, BorderLayout.WEST);
+        JComboBox<ColorScheme> colorScheme = new JComboBox<>(ColorScheme.getAllSchemes().toArray(new ColorScheme[2]));
+        colorScheme.addActionListener(e ->  {
+        	System.out.println("selected : " + colorScheme.getSelectedItem());
+        	emptyLabel.setColorScheme((ColorScheme)colorScheme.getSelectedItem());
+        });
+        leftPanel.add(colorScheme);
+        JTextField realNumber = new JTextField();
+        JTextField imaginaryNumber = new JTextField();  
+        JButton generator = new JButton("Générer fractale");
+        generator.addActionListener(e -> {
+        	final double real = Double.parseDouble(realNumber.getText());
+        	final double imaginary = Double.parseDouble(imaginaryNumber.getText());
+        	Function <Complex, Complex> f = (Complex x) -> x.mul(x).add(new Complex(real, imaginary));
+        	emptyLabel.setFunction(f);
+        });
+        leftPanel.add(realNumber);
+        leftPanel.add(imaginaryNumber);
+        leftPanel.add(generator);
+        //Display the window.
+        frame.pack();
+        frame.setVisible(true);
+    }
 
+    public static void main_(String[] args) {
+        //Schedule a job for the event-dispatching thread:
+        //creating and showing this application's GUI.
+        javax.swing.SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+                createAndShowGUI();
+            }
+        });
+    }
 }
