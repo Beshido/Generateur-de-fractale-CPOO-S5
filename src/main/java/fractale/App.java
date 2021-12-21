@@ -349,6 +349,14 @@ public class App {
 			imagePanel.setSquareRendering(squareRender.isSelected());
 		});
 		squareRender.setSelected(false);
+		JTextField function = new JTextField();
+		leftPanel.add(function);
+		JButton generatorFun = new JButton("Générer fonction");
+		generatorFun.addActionListener(e -> {
+			imagePanel.setFunction(new PolyParser().parse2(function.getText()));
+		});
+		leftPanel.add(generatorFun);
+		
 		//Display the window.
 		frame.pack();
 		frame.setVisible(true);
