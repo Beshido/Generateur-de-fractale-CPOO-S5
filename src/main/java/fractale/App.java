@@ -6,16 +6,14 @@ package fractale;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
-import java.awt.RenderingHints;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Stack;
 import java.util.function.BiFunction;
@@ -30,102 +28,35 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
+enum WindowFitMode { 
+	MINFIT, 
+	MAXFIT,
+	FILL;
+}
 
-class ImagePanel extends JPanel {
-
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
-	BufferedImage img;
-	FractaleRenderConfig config;
-	Function<Complex,Complex> f;
-	BiFunction<FractaleRenderConfig, Integer, Color> c;
-	boolean squareRendering;
-
-	public ImagePanel(FractaleRenderConfig config, Function<Complex,Complex> f, BiFunction<FractaleRenderConfig, Integer, Color> c ) { 
-		this.img = App.generateFractaleImage(config, f, c);
-		this.config = config;
-		this.f = f;
-		this.c = c;
+class JolieFonction {
+	String name;
+	String def;
+	public JolieFonction(String string, String string2) {
+		name = string;
+		def  = string2;
 	}
-
-
-	public void paintComponent(Graphics g) {
-		int w = getWidth(); // * 3;
-		int h = getHeight(); // * 3;
-		int fw = w;
-		int fh = h;
-		if (this.squareRendering) { 
-			fw = fh = Math.min(w, h);
-		}
-//			if (w > h) { 
-//				config.setOutputSize(h, h);
-//				g.clearRect(0, 0, w, h);
-//				this.img = App.generateFractaleImage(config, f, c);
-//			} else { 
-//				config.setOutputSize(w, w);
-//				g.clearRect(0, 0, w, h);
-//				this.img = App.generateFractaleImage(config, f, c);
-//			}
-//			if (w > h) {
-//				config.setOutputSize(h, h);
-//				g.clearRect(0, 0, w, h);
-//				this.img = App.generateFractaleImage(config, f, c);
-//			} else if (h > w) { 
-//				config.setOutputSize(w, w);
-//				g.clearRect(0, 0, w, h);
-//				this.img = App.generateFractaleImage(config, f, c);
-//			}
-//		} else { 
-
-			if (img == null || fw != img.getWidth() || fh != img.getHeight()) {
-				config.setOutputSize(fw, fh);
-				g.clearRect(0, 0, w, h);
-				this.img = App.generateFractaleImage(config, f, c);
+	public Function<Complex, Complex> getFunction() {
+		return new PolyParser().parse2(def);
+	}
+	public String toString() {
+		return name + "(f(z)=" + def + ")";
+	}
+	public String getDefinition() { 
+		return def;
+	}
+	public static List<JolieFonction> getJoliesFonctions () { 
+	return Arrays.asList(
+			new JolieFonction("julia", "z * z -0.7269 + 0.1889i"),
+			new JolieFonction("saut interstellaire", "z*z -1.401155")
+			);
 			}
-//		}
-		
-		Graphics2D g_ = (Graphics2D)g;
-		g_.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-		//	    g_.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-		g_.setRenderingHint(RenderingHints.KEY_RENDERING	, RenderingHints.VALUE_RENDER_QUALITY);
-		g_.setRenderingHint(RenderingHints.KEY_ANTIALIASING,	RenderingHints.VALUE_ANTIALIAS_ON); 
-		g_.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
-
-		//g.drawImage(img, 0, 0, getWidth(), getHeight(), null);
-		g.drawImage(img, (getWidth() - fw)/2, (getHeight() - fh)/2, null);
-
-
-	}
-
-
-	public void setColorScheme(ColorScheme colorScheme) {
-		this.c = colorScheme.f;
-		img = null;
-		repaint();
-	}
-
-
-	public void setFunction(Function<Complex, Complex> f2) {
-		this.f = f2;
-		img = null;
-		repaint();
-	}
-
-
-	public void setIterations(int iterations) {
-		this.config.maxIterations = iterations;
-		img = null;
-		repaint();
-	}
-
-
-	public void setSquareRendering(boolean selected) {
-		System.out.println("Square rendering : " + selected);
-		this.squareRendering = selected;
-	}
-
+			
 }
 
 public class App {
@@ -308,7 +239,7 @@ public class App {
 	 */
 	private static void createAndShowGUI() {
 		//Create and set up the window.
-		JFrame frame = new JFrame("FrameDemo");
+		JFrame frame = new JFrame("Fractale rendering");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		FractaleRenderConfig c = FractaleRenderConfig.createSimple(1001, -1, 1);
 		//        BufferedImage img = generateFractaleImage(c, App::f0, ColorScheme::colorScheme1);
@@ -316,39 +247,44 @@ public class App {
 		imagePanel.setPreferredSize(new Dimension(1001, 1001));
 		frame.getContentPane().add(imagePanel, BorderLayout.CENTER);
 		imagePanel.setBackground(Color.GREEN);
+		JFrame frame2 = new JFrame("Fractale controls");
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		JPanel leftPanel = new JPanel();
 		leftPanel.setLayout(new GridLayout(0, 1));
-		frame.getContentPane().add(leftPanel, BorderLayout.WEST);
+		frame2.getContentPane().add(leftPanel, BorderLayout.WEST);
 		JComboBox<ColorScheme> colorScheme = new JComboBox<>(ColorScheme.getAllSchemes().toArray(new ColorScheme[2]));
 		colorScheme.addActionListener(e ->  {
 			System.out.println("selected : " + colorScheme.getSelectedItem());
 			imagePanel.setColorScheme((ColorScheme)colorScheme.getSelectedItem());
 		});
 		leftPanel.add(colorScheme);
-		JTextField realNumber = new JTextField();
-		JTextField imaginaryNumber = new JTextField();  
-		JButton generator = new JButton("Générer fractale");
-		generator.addActionListener(e -> {
-			final double real = Double.parseDouble(realNumber.getText());
-			final double imaginary = Double.parseDouble(imaginaryNumber.getText());
-			Function <Complex, Complex> f = (Complex x) -> x.mul(x).add(new Complex(real, imaginary));
-			imagePanel.setFunction(f);
-		});
-		leftPanel.add(realNumber);
-		leftPanel.add(imaginaryNumber);
-		leftPanel.add(generator);
-		JComboBox<Integer> iterations = new JComboBox<>(new Integer[] { 100, 500, 1000 });
-		leftPanel.add(iterations);
-		iterations.addActionListener(e -> {
-			imagePanel.setIterations((Integer)iterations.getSelectedItem());
-		});
+//		JTextField realNumber = new JTextField();
+//		JTextField imaginaryNumber = new JTextField();  
+//		JButton generator = new JButton("Générer fractale");
+//		generator.addActionListener(e -> {
+//			final double real = Double.parseDouble(realNumber.getText());
+//			final double imaginary = Double.parseDouble(imaginaryNumber.getText());
+//			Function <Complex, Complex> f = (Complex x) -> x.mul(x).add(new Complex(real, imaginary));
+//			imagePanel.setFunction(f);
+//		});
+//		leftPanel.add(realNumber);
+//		leftPanel.add(imaginaryNumber);
+//		leftPanel.add(generator);
+//		JComboBox<Integer> iterations = new JComboBox<>(new Integer[] { 100, 500, 1000 });
+//		leftPanel.add(iterations);
+//		iterations.addActionListener(e -> {
+//			imagePanel.setIterations((Integer)iterations.getSelectedItem());
+//		});
 
-		JCheckBox squareRender = new JCheckBox("square render");
+		JComboBox<WindowFitMode> squareRender = new JComboBox<>(WindowFitMode.values());
+		
 		leftPanel.add(squareRender);
 		squareRender.addActionListener(e -> {
-			imagePanel.setSquareRendering(squareRender.isSelected());
+			// imagePanel.setSquareRendering(squareRender.isSelected());
+			imagePanel.setWindowFitMode((WindowFitMode)squareRender.getSelectedItem());
 		});
-		squareRender.setSelected(false);
+		squareRender.setSelectedItem(WindowFitMode.FILL);
+//		squareRender.setSelected(false);
 		JTextField function = new JTextField();
 		leftPanel.add(function);
 		JButton generatorFun = new JButton("Générer fonction");
@@ -357,9 +293,20 @@ public class App {
 		});
 		leftPanel.add(generatorFun);
 		
+		JComboBox<JolieFonction> joliesFonction = new JComboBox<>(JolieFonction.getJoliesFonctions().toArray(new JolieFonction[0]));
+		joliesFonction.addActionListener(e ->  {
+			JolieFonction f = (JolieFonction)joliesFonction.getSelectedItem();
+			System.out.println("selected : " + f);
+			imagePanel.setFunction(f.getFunction());
+			function.setText(f.getDefinition());
+		});
+		leftPanel.add(joliesFonction);
+
 		//Display the window.
 		frame.pack();
 		frame.setVisible(true);
+		frame2.pack();
+		frame2.setVisible(true);
 	}
 
 	public static void main_(String[] args) {
