@@ -15,11 +15,16 @@ import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Stack;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import javax.imageio.ImageIO;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -35,34 +40,63 @@ class ImagePanel extends JPanel {
 	BufferedImage img;
 	FractaleRenderConfig config;
 	Function<Complex,Complex> f;
-	Function<Integer, Color> c;
-	
-	
-	public ImagePanel(FractaleRenderConfig config, Function<Complex,Complex> f, Function<Integer, Color> c ) { 
+	BiFunction<FractaleRenderConfig, Integer, Color> c;
+	boolean squareRendering;
+
+	public ImagePanel(FractaleRenderConfig config, Function<Complex,Complex> f, BiFunction<FractaleRenderConfig, Integer, Color> c ) { 
 		this.img = App.generateFractaleImage(config, f, c);
 		this.config = config;
 		this.f = f;
 		this.c = c;
 	}
-	
-	
+
+
 	public void paintComponent(Graphics g) {
-		int w = getWidth();
-		int h = getHeight();
-		if (img == null || w != img.getWidth() || h != img.getHeight()) {
-			config.setOutputSize( w, h);
-			g.clearRect(0, 0, w, h);
-			this.img = App.generateFractaleImage(config, f, c);
+		int w = getWidth(); // * 3;
+		int h = getHeight(); // * 3;
+		int fw = w;
+		int fh = h;
+		if (this.squareRendering) { 
+			fw = fh = Math.min(w, h);
 		}
-//		Graphics2D g_ = (Graphics2D)g;
-//			    g_.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-////	    g_.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-//	    g_.setRenderingHint(RenderingHints.KEY_RENDERING	, RenderingHints.VALUE_RENDER_QUALITY);
-//	    g_.setRenderingHint(RenderingHints.KEY_ANTIALIASING,	RenderingHints.VALUE_ANTIALIAS_ON); 
-//	    g_.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
-//
-//		g.drawImage(img, 0, 0, w, h, null);
-		g.drawImage(img, 0, 0, null);
+//			if (w > h) { 
+//				config.setOutputSize(h, h);
+//				g.clearRect(0, 0, w, h);
+//				this.img = App.generateFractaleImage(config, f, c);
+//			} else { 
+//				config.setOutputSize(w, w);
+//				g.clearRect(0, 0, w, h);
+//				this.img = App.generateFractaleImage(config, f, c);
+//			}
+//			if (w > h) {
+//				config.setOutputSize(h, h);
+//				g.clearRect(0, 0, w, h);
+//				this.img = App.generateFractaleImage(config, f, c);
+//			} else if (h > w) { 
+//				config.setOutputSize(w, w);
+//				g.clearRect(0, 0, w, h);
+//				this.img = App.generateFractaleImage(config, f, c);
+//			}
+//		} else { 
+
+			if (img == null || fw != img.getWidth() || fh != img.getHeight()) {
+				config.setOutputSize(fw, fh);
+				g.clearRect(0, 0, w, h);
+				this.img = App.generateFractaleImage(config, f, c);
+			}
+//		}
+		
+		Graphics2D g_ = (Graphics2D)g;
+		g_.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+		//	    g_.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+		g_.setRenderingHint(RenderingHints.KEY_RENDERING	, RenderingHints.VALUE_RENDER_QUALITY);
+		g_.setRenderingHint(RenderingHints.KEY_ANTIALIASING,	RenderingHints.VALUE_ANTIALIAS_ON); 
+		g_.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+
+		//g.drawImage(img, 0, 0, getWidth(), getHeight(), null);
+		g.drawImage(img, (getWidth() - fw)/2, (getHeight() - fh)/2, null);
+
+
 	}
 
 
@@ -78,12 +112,25 @@ class ImagePanel extends JPanel {
 		img = null;
 		repaint();
 	}
-	
+
+
+	public void setIterations(int iterations) {
+		this.config.maxIterations = iterations;
+		img = null;
+		repaint();
+	}
+
+
+	public void setSquareRendering(boolean selected) {
+		System.out.println("Square rendering : " + selected);
+		this.squareRendering = selected;
+	}
+
 }
 
 public class App {
 
-	static final int MAX_ITER = 1000;
+	//	static final int MAX_ITER = 1000;
 
 
 	public String getGreeting() {
@@ -115,121 +162,205 @@ public class App {
 		}
 		return ite;
 	}
-	
-	public static int divergenceIndex (Function<Complex, Complex> f, Complex c) { 
+
+	public static int divergenceIndex (FractaleRenderConfig cfg, Function<Complex, Complex> f, Complex c) { 
 		double RADIUS=2.;
 		int ite = 0; 
 		Complex zn = c;
 		// sortie de boucle si divergence
-		while (ite < MAX_ITER-1 && zn.getModule() <= RADIUS) { 
+		while (ite < cfg.maxIterations-1 && zn.getModule() <= RADIUS) { 
 			zn = f.apply(zn);
 			ite++;
 		}
 		return ite;
 	}
-	
-	public static BufferedImage generateFractaleImage(FractaleRenderConfig config, Function<Complex,Complex> f, Function<Integer, Color> c) {
-//		int outputWidth = 1001;
-//		int outputHeight = 1001;
-//		double minReal = -1;
-//		double maxReal = 1;
-//		double minImaginary = -1;
-//		double maxImaginary = 1;
-//		double xStep = (maxReal - minReal) / (outputWidth-1);
-//		double yStep = (maxImaginary - minImaginary) / (outputHeight-1);
+
+	public static BufferedImage generateFractaleImage(FractaleRenderConfig config, Function<Complex,Complex> f, BiFunction<FractaleRenderConfig, Integer, Color> c) {
+		//		int outputWidth = 1001;
+		//		int outputHeight = 1001;
+		//		double minReal = -1;
+		//		double maxReal = 1;
+		//		double minImaginary = -1;
+		//		double maxImaginary = 1;
+		//		double xStep = (maxReal - minReal) / (outputWidth-1);
+		//		double yStep = (maxImaginary - minImaginary) / (outputHeight-1);
 		//        int xStepCount;
 		//        int yStepCount;
-
+		long start = System.currentTimeMillis();
 		System.out.println("generating fractal image " + config.outputWidth + "x" + config.outputHeight);
 		BufferedImage img = new BufferedImage(config.outputWidth, config.outputHeight, BufferedImage.TYPE_INT_RGB);
 
-		for (int i=0; i< config.outputWidth; i++) { 
-			for (int j = 0; j< config.outputHeight; j++) { 
-				int ite = divergenceIndex(f, new Complex(config.minReal + i * config.xStep, config.minImaginary + j * config.yStep));
-//				int r = 64; int g = 224; int b = 208; //turquoise
-//				int col = ite * 317; //(r << 16) | (g << 8) | b;
-//				Color color = Color.RED;
-//				Color color = c0(ite);
-				Color color = c.apply(ite);
+		//		for (int i=0; i< config.outputWidth; i++) { 
+		//			for (int j = 0; j< config.outputHeight; j++) { 
+		//				int ite = divergenceIndex(f, new Complex(config.minReal + i * config.xStep, config.minImaginary + j * config.yStep));
+		////				int r = 64; int g = 224; int b = 208; //turquoise
+		////				int col = ite * 317; //(r << 16) | (g << 8) | b;
+		////				Color color = Color.RED;
+		////				Color color = c0(ite);
+		//				Color color = c.apply(ite);
+		//				int col = color.getRGB();
+		//				img.setRGB(i, j, col);
+		//			}
+		//		}
+		//		List<PixelComputation> comps = new ArrayList<>(config.outputWidth * config.outputHeight);
+		//		for (int i=0; i< config.outputWidth; i++) 
+		//			for (int j = 0; j< config.outputHeight; j++) 
+		//				comps.add(new PixelComputation(i,j));
+		//		comps.parallelStream()
+		//			.forEach(pc -> {
+		//				int ite = divergenceIndex(f, new Complex(config.minReal + pc.i * config.xStep, config.minImaginary + pc.j * config.yStep));
+		//				Color color = c.apply(ite);
+		//				int col = color.getRGB();
+		//				img.setRGB(pc.i, pc.j, col);
+		//			});
+
+		List<PixelRowComputation> comps = new ArrayList<>(config.outputHeight);
+		for (int j = 0; j< config.outputHeight; j++) 
+			comps.add(new PixelRowComputation(j));
+		comps.parallelStream()
+		.forEach(pc -> {
+			for (int i=0; i< config.outputWidth; i++) {
+				int ite = divergenceIndex(config, f, new Complex(config.minReal + i * config.xStep, config.minImaginary + pc.j * config.yStep));
+				Color color = c.apply(config, ite);
 				int col = color.getRGB();
-				img.setRGB(i, j, col);
+				img.setRGB(i, pc.j, col);
 			}
-		}
-		
-//		BufferedImage dbi = null;
-//		dbi = new BufferedImage(1001, 1001, img.getType());
-//	    Graphics2D g = dbi.createGraphics();
-////	    g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-//	    g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-//	    g.setRenderingHint(RenderingHints.KEY_RENDERING	, RenderingHints.VALUE_RENDER_QUALITY);
-//	    g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,	RenderingHints.VALUE_ANTIALIAS_ON); 
-//	    g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
-////	    AffineTransform at = AffineTransform.getScaleInstance(1/3.0, 1/3.0);
-////	    g.drawRenderedImage(img, at);
-//	    g.drawImage(img, 0, 0, 1001, 1001, null);
-//        g.dispose();
-//
-//	    img = dbi;
-		System.out.println("-- generated fractal image " + config.outputWidth + "x" + config.outputHeight);
+		});
+
+		//		Stack<PixelComputation> pcs = new Stack<>(); //config.outputWidth * config.outputHeight);
+		//		for (int i=0; i< config.outputWidth; i++) 
+		//			for (int j = 0; j< config.outputHeight; j++) 
+		//				pcs.push(new PixelComputation(i,j));
+		//
+		//		List<Thread> threads = new ArrayList<>();
+		//		for (int i=0; i<16; i++) {
+		//			Thread t = new Thread(() -> {
+		//				PixelComputation pc;
+		//				while (true) {
+		//					synchronized (pcs) {
+		//						if (pcs.isEmpty())
+		//							return;
+		//						pc = pcs.pop();
+		//					}
+		//					int ite = divergenceIndex(f, new Complex(config.minReal + pc.i * config.xStep, config.minImaginary + pc.j * config.yStep));
+		//					Color color = c.apply(ite);
+		//					int col = color.getRGB();
+		//					img.setRGB(pc.i, pc.j, col);
+		//				}
+		//			});
+		//			t.start();
+		//			threads.add(t);
+		//		}
+		//		System.out.println("-- thread setup : " + (System.currentTimeMillis() - start) + "ms");
+		//
+		//		for (Thread t : threads) {
+		//			try {
+		//				t.join();
+		//			} catch (InterruptedException e) {
+		//				e.printStackTrace();
+		//			}
+		//		}
+
+		//		System.out.println("stack " + pcs.size());
+		//		BufferedImage dbi = null;
+		//		dbi = new BufferedImage(1001, 1001, img.getType());
+		//	    Graphics2D g = dbi.createGraphics();
+		////	    g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+		//	    g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+		//	    g.setRenderingHint(RenderingHints.KEY_RENDERING	, RenderingHints.VALUE_RENDER_QUALITY);
+		//	    g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,	RenderingHints.VALUE_ANTIALIAS_ON); 
+		//	    g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+		////	    AffineTransform at = AffineTransform.getScaleInstance(1/3.0, 1/3.0);
+		////	    g.drawRenderedImage(img, at);
+		//	    g.drawImage(img, 0, 0, 1001, 1001, null);
+		//        g.dispose();
+		//
+		//	    img = dbi;
+		System.out.println("-- generated fractal image " + config.outputWidth + "x" + config.outputHeight + " : " + (System.currentTimeMillis() - start) + "ms");
 		return img;
 	}
-	
-	
+
+	static class PixelRowComputation {
+		int j;
+		PixelRowComputation(int j) { this.j = j; }
+	}
+
+	static class PixelComputation {
+		int i,j; // in
+		int iterations; // out
+		public PixelComputation(int i, int j) {
+			this.i = i; this.j = j;
+		}
+	}
+
+
 	public static void main(String[] args) throws IOException {
 		System.out.println(new App().getGreeting());
 		FractaleRenderConfig c = FractaleRenderConfig.createSimple(1001, -1, 1);
-//		BufferedImage img = generateFractaleImage(c, App::f0, App::colorScheme1);
-//		ImageIO.write(img, "PNG", new File("MyFile.png"));
+		//		BufferedImage img = generateFractaleImage(c, App::f0, App::colorScheme1);
+		//		ImageIO.write(img, "PNG", new File("MyFile.png"));
 		main_(args);
 	}
-    /**
-     * Create the GUI and show it.  For thread safety,
-     * this method should be invoked from the
-     * event-dispatching thread.
-     */
-    private static void createAndShowGUI() {
-        //Create and set up the window.
-        JFrame frame = new JFrame("FrameDemo");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        FractaleRenderConfig c = FractaleRenderConfig.createSimple(1001, -1, 1);
-//        BufferedImage img = generateFractaleImage(c, App::f0, ColorScheme::colorScheme1);
-        ImagePanel emptyLabel = new ImagePanel(c, App::f0, ColorScheme::colorScheme0);
-        emptyLabel.setPreferredSize(new Dimension(1001, 1001));
-        frame.getContentPane().add(emptyLabel, BorderLayout.CENTER);
-        emptyLabel.setBackground(Color.GREEN);
-        JPanel leftPanel = new JPanel();
-        leftPanel.setLayout(new GridLayout(0, 1));
-        frame.getContentPane().add(leftPanel, BorderLayout.WEST);
-        JComboBox<ColorScheme> colorScheme = new JComboBox<>(ColorScheme.getAllSchemes().toArray(new ColorScheme[2]));
-        colorScheme.addActionListener(e ->  {
-        	System.out.println("selected : " + colorScheme.getSelectedItem());
-        	emptyLabel.setColorScheme((ColorScheme)colorScheme.getSelectedItem());
-        });
-        leftPanel.add(colorScheme);
-        JTextField realNumber = new JTextField();
-        JTextField imaginaryNumber = new JTextField();  
-        JButton generator = new JButton("Générer fractale");
-        generator.addActionListener(e -> {
-        	final double real = Double.parseDouble(realNumber.getText());
-        	final double imaginary = Double.parseDouble(imaginaryNumber.getText());
-        	Function <Complex, Complex> f = (Complex x) -> x.mul(x).add(new Complex(real, imaginary));
-        	emptyLabel.setFunction(f);
-        });
-        leftPanel.add(realNumber);
-        leftPanel.add(imaginaryNumber);
-        leftPanel.add(generator);
-        //Display the window.
-        frame.pack();
-        frame.setVisible(true);
-    }
+	/**
+	 * Create the GUI and show it.  For thread safety,
+	 * this method should be invoked from the
+	 * event-dispatching thread.
+	 */
+	private static void createAndShowGUI() {
+		//Create and set up the window.
+		JFrame frame = new JFrame("FrameDemo");
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		FractaleRenderConfig c = FractaleRenderConfig.createSimple(1001, -1, 1);
+		//        BufferedImage img = generateFractaleImage(c, App::f0, ColorScheme::colorScheme1);
+		ImagePanel imagePanel = new ImagePanel(c, App::f0, ColorScheme::colorScheme0);
+		imagePanel.setPreferredSize(new Dimension(1001, 1001));
+		frame.getContentPane().add(imagePanel, BorderLayout.CENTER);
+		imagePanel.setBackground(Color.GREEN);
+		JPanel leftPanel = new JPanel();
+		leftPanel.setLayout(new GridLayout(0, 1));
+		frame.getContentPane().add(leftPanel, BorderLayout.WEST);
+		JComboBox<ColorScheme> colorScheme = new JComboBox<>(ColorScheme.getAllSchemes().toArray(new ColorScheme[2]));
+		colorScheme.addActionListener(e ->  {
+			System.out.println("selected : " + colorScheme.getSelectedItem());
+			imagePanel.setColorScheme((ColorScheme)colorScheme.getSelectedItem());
+		});
+		leftPanel.add(colorScheme);
+		JTextField realNumber = new JTextField();
+		JTextField imaginaryNumber = new JTextField();  
+		JButton generator = new JButton("Générer fractale");
+		generator.addActionListener(e -> {
+			final double real = Double.parseDouble(realNumber.getText());
+			final double imaginary = Double.parseDouble(imaginaryNumber.getText());
+			Function <Complex, Complex> f = (Complex x) -> x.mul(x).add(new Complex(real, imaginary));
+			imagePanel.setFunction(f);
+		});
+		leftPanel.add(realNumber);
+		leftPanel.add(imaginaryNumber);
+		leftPanel.add(generator);
+		JComboBox<Integer> iterations = new JComboBox<>(new Integer[] { 100, 500, 1000 });
+		leftPanel.add(iterations);
+		iterations.addActionListener(e -> {
+			imagePanel.setIterations((Integer)iterations.getSelectedItem());
+		});
 
-    public static void main_(String[] args) {
-        //Schedule a job for the event-dispatching thread:
-        //creating and showing this application's GUI.
-        javax.swing.SwingUtilities.invokeLater(new Runnable() {
-            public void run() {
-                createAndShowGUI();
-            }
-        });
-    }
+		JCheckBox squareRender = new JCheckBox("square render");
+		leftPanel.add(squareRender);
+		squareRender.addActionListener(e -> {
+			imagePanel.setSquareRendering(squareRender.isSelected());
+		});
+		squareRender.setSelected(false);
+		//Display the window.
+		frame.pack();
+		frame.setVisible(true);
+	}
+
+	public static void main_(String[] args) {
+		//Schedule a job for the event-dispatching thread:
+		//creating and showing this application's GUI.
+		javax.swing.SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				createAndShowGUI();
+			}
+		});
+	}
 }

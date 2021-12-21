@@ -9,6 +9,7 @@ public class FractaleRenderConfig {
 	double maxImaginary;
 	double xStep;
 	double yStep;
+	int maxIterations = 1000;
 	
 	private FractaleRenderConfig() {
 		
