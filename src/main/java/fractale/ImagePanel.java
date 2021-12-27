@@ -4,6 +4,7 @@ import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
+import java.awt.event.MouseWheelEvent;
 import java.awt.image.BufferedImage;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -22,16 +23,35 @@ class ImagePanel extends JPanel {
 	private static final long serialVersionUID = 1L;
 	BufferedImage img;
 	FractaleRenderConfig config;
-	Function<Complex,Complex> f;
+	JolieFonction f;
 	BiFunction<FractaleRenderConfig, Integer, Color> c;
 	WindowFitMode wfm;
-
-	public ImagePanel(FractaleRenderConfig config, Function<Complex,Complex> f, BiFunction<FractaleRenderConfig, Integer, Color> c ) { 
-		this.img = App.generateFractaleImage(config, f, c);
+	double zoom;
+	
+	public ImagePanel(FractaleRenderConfig config, JolieFonction  f, BiFunction<FractaleRenderConfig, Integer, Color> c ) { 
+		this.img = FractaleRenderEngine.generateFractaleImage(config, f, c);
 		this.config = config;
 		this.f = f;
 		this.c = c;
+		this.zoom = 1;
+		addMouseWheelListener(e -> {
+			if (e.getScrollType() == MouseWheelEvent.WHEEL_UNIT_SCROLL) {
+				final double zoomAmount = 1.1;
+				if (e.getWheelRotation() > 0)
+					zoom *= zoomAmount * e.getWheelRotation();
+				else
+					zoom /= zoomAmount * -e.getWheelRotation();
+				double zv = zoom; // 1 - zoom;
+				System.out.println("wheel : " + e.getWheelRotation() + " current zoom : " + zoom);
+				this.config .minReal  = - zv; // += (0.1 * e.getWheelRotation());
+				this.config .maxReal  =   zv; //(0.1 * e.getWheelRotation());
+				this.config .minImaginary = - zv; //(0.1 * e.getWheelRotation());
+				this.config .maxImaginary = zv; // (0.1 * e.getWheelRotation());
+				redraw();
+			}
+		});
 	}
+	
 
 
 	public void paintComponent(Graphics g) {
@@ -77,7 +97,7 @@ class ImagePanel extends JPanel {
 			if (img == null || fw != img.getWidth() || fh != img.getHeight()) {
 				config.setOutputSize(fw, fh);
 				g.clearRect(0, 0, w, h);
-				this.img = App.generateFractaleImage(config, f, c);
+				this.img = FractaleRenderEngine.generateFractaleImage(config, f, c);
 			}
 //		}
 		
@@ -91,30 +111,32 @@ class ImagePanel extends JPanel {
 		//g.drawImage(img, 0, 0, getWidth(), getHeight(), null);
 		g.drawImage(img, (getWidth() - fw)/2, (getHeight() - fh)/2, null);
 
-
+		//g.drawString("FONCTION ZOOM COORDONNEES", 100,100);
 	}
 
 
 	public void setColorScheme(ColorScheme colorScheme) {
 		this.c = colorScheme.f;
-		img = null;
-		repaint();
+		redraw();
 	}
 
 
-	public void setFunction(Function<Complex, Complex> f2) {
+	public void setFunction(JolieFonction f2) {
 		this.f = f2;
-		img = null;
-		repaint();
+		redraw();
 	}
 
 
 	public void setIterations(int iterations) {
 		this.config.maxIterations = iterations;
-		img = null;
-		repaint();
+		redraw();
 	}
 
+	public void redraw() {
+		img = null;
+		repaint();		
+	}
+	
 
 //	public void setSquareRendering(boolean selected) {
 //		System.out.println("Square rendering : " + selected);
