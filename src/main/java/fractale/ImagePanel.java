@@ -4,6 +4,8 @@ import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionListener;
 import java.awt.event.MouseWheelEvent;
 import java.awt.image.BufferedImage;
 import java.util.function.BiFunction;
@@ -16,7 +18,7 @@ import javax.swing.JPanel;
 
 
 class ImagePanel extends JPanel {
-
+	
 	/**
 	 * 
 	 */
@@ -50,6 +52,36 @@ class ImagePanel extends JPanel {
 				redraw();
 			}
 		});
+		addMouseMotionListener(
+				new MouseMotionListener() {
+					int lastX;
+					int lastY;
+					
+					@Override
+					public void mouseDragged(MouseEvent arg0) {
+						int wdx = arg0.getX() - lastX;
+						int wdy = arg0.getY() - lastY;
+						System.out.println("Je suis dragué  " + wdx + " x " + wdy);
+						// update drawing
+						double wfdx = config.xStep * wdx;
+						double wfdy = config.yStep * wdy;
+						config.maxReal -= wfdx;
+						config.minReal -= wfdx;
+						config.maxImaginary -= wfdy;
+						config.minImaginary -= wfdy;
+						redraw();
+						
+						// end
+						lastX=arg0.getX();
+						lastY=arg0.getY();
+					}
+					@Override
+					public void mouseMoved(MouseEvent arg0) {
+						lastX=arg0.getX();
+						lastY=arg0.getY();
+					} 
+				}
+		);
 	}
 	
 
