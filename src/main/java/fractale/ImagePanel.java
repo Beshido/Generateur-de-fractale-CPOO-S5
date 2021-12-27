@@ -45,10 +45,12 @@ class ImagePanel extends JPanel {
 					zoom /= zoomAmount * -e.getWheelRotation();
 				double zv = zoom; // 1 - zoom;
 				System.out.println("wheel : " + e.getWheelRotation() + " current zoom : " + zoom);
-				this.config .minReal  = - zv; // += (0.1 * e.getWheelRotation());
-				this.config .maxReal  =   zv; //(0.1 * e.getWheelRotation());
-				this.config .minImaginary = - zv; //(0.1 * e.getWheelRotation());
-				this.config .maxImaginary = zv; // (0.1 * e.getWheelRotation());
+				double fcx = (config.maxReal + config.minReal)/2;
+				double fcy = (config.maxImaginary + config.minImaginary)/2;
+				this.config .minReal  = fcx - zv; // += (0.1 * e.getWheelRotation());
+				this.config .maxReal  = fcx +  zv; //(0.1 * e.getWheelRotation());
+				this.config .minImaginary = fcy - zv; //(0.1 * e.getWheelRotation());
+				this.config .maxImaginary = fcy + zv; // (0.1 * e.getWheelRotation());
 				redraw();
 			}
 		});
