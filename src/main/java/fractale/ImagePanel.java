@@ -23,6 +23,11 @@ class ImagePanel extends JPanel {
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
+	
+	int imgX;
+	int imgY;
+	Thread calculEnCours;
+	
 	BufferedImage img;
 	FractaleRenderConfig config;
 	JolieFonction f;
@@ -31,11 +36,18 @@ class ImagePanel extends JPanel {
 	double zoom;
 	
 	public ImagePanel(FractaleRenderConfig config, JolieFonction  f, BiFunction<FractaleRenderConfig, Integer, Color> c ) { 
-		this.img = FractaleRenderEngine.generateFractaleImage(config, f, c);
+		this.img = new FractaleRenderEngine().generateFractaleImage(config, f, c);
+		
+		this.imgX = this.imgY = 0;
+		this.calculEnCours = null;
+		
 		this.config = config;
 		this.f = f;
 		this.c = c;
 		this.zoom = 1;
+		setOpaque(true);
+		setBackground(Color.BLACK);
+		
 		addMouseWheelListener(e -> {
 			if (e.getScrollType() == MouseWheelEvent.WHEEL_UNIT_SCROLL) {
 				final double zoomAmount = 1.1;
@@ -71,7 +83,22 @@ class ImagePanel extends JPanel {
 						config.minReal -= wfdx;
 						config.maxImaginary -= wfdy;
 						config.minImaginary -= wfdy;
-						redraw();
+						// redraw();
+						imgX += wdx;
+						imgY += wdy;
+						repaint();
+						if (calculEnCours != null) {
+							calculEnCours.stop();
+							calculEnCours = null;
+						}
+						calculEnCours = new Thread(() -> {
+							BufferedImage img2 = new FractaleRenderEngine().generateFractaleImage(config, f, c);
+							imgX = 0;
+							imgY = 0;
+							img = img2;
+							repaint();
+						});
+						calculEnCours.start();
 						
 						// end
 						lastX=arg0.getX();
@@ -130,8 +157,7 @@ class ImagePanel extends JPanel {
 
 			if (img == null || fw != img.getWidth() || fh != img.getHeight()) {
 				config.setOutputSize(fw, fh);
-				g.clearRect(0, 0, w, h);
-				this.img = FractaleRenderEngine.generateFractaleImage(config, f, c);
+				this.img = new FractaleRenderEngine().generateFractaleImage(config, f, c);
 			}
 //		}
 		
@@ -143,8 +169,12 @@ class ImagePanel extends JPanel {
 		g_.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
 
 		//g.drawImage(img, 0, 0, getWidth(), getHeight(), null);
-		g.drawImage(img, (getWidth() - fw)/2, (getHeight() - fh)/2, null);
-
+//		g.drawImage(img, (getWidth() - fw)/2, (getHeight() - fh)/2, null);
+//		g.clearRect(0, 0, w, h);
+		super.paintComponent(g);
+		g.drawImage(img, imgX + (getWidth() - fw)/2, imgY + (getHeight() - fh)/2, null);
+		g.setColor(Color.WHITE);
+		FractaleRenderEngine.information(g_, config, f);	
 		//g.drawString("FONCTION ZOOM COORDONNEES", 100,100);
 	}
 

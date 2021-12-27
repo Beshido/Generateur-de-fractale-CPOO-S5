@@ -5,6 +5,7 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Stack;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -35,7 +36,7 @@ public class FractaleRenderEngine {
 		return ite;
 	}
 
-	public static BufferedImage generateFractaleImage(FractaleRenderConfig config, JolieFonction f, BiFunction<FractaleRenderConfig, Integer, Color> c) {
+	public BufferedImage generateFractaleImage(FractaleRenderConfig config, JolieFonction f, BiFunction<FractaleRenderConfig, Integer, Color> c) {
 		//		int outputWidth = 1001;
 		//		int outputHeight = 1001;
 		//		double minReal = -1;
@@ -77,7 +78,7 @@ public class FractaleRenderEngine {
 		List<FractaleRenderEngine.PixelRowComputation> comps = new ArrayList<>(config.outputHeight);
 		for (int j = 0; j< config.outputHeight; j++) 
 			comps.add(new FractaleRenderEngine.PixelRowComputation(j));
-		comps.parallelStream()
+		comps.stream() // parallelStream()
 		.forEach(pc -> {
 			for (int i=0; i< config.outputWidth; i++) {
 				int ite = divergenceIndex(config, f , new Complex(config.minReal + i * config.xStep, config.minImaginary + pc.j * config.yStep));
@@ -120,6 +121,39 @@ public class FractaleRenderEngine {
 		//				e.printStackTrace();
 		//			}
 		//		}
+		
+//		Stack<Integer> pcs = new Stack<>(); //config.outputWidth * config.outputHeight);
+//		for (int j = 0; j< config.outputHeight; j++) 
+//			pcs.push(j);
+//		
+//		List<Thread> threads = new ArrayList<>();
+//		for (int i=0; i<16; i++) {
+//					Thread t = new Thread(() -> {
+//						PixelComputation pc;
+//						while (true) {
+//							synchronized (pcs) {
+//								if (pcs.isEmpty())
+//									return;
+//								pc = pcs.pop();
+//							}
+//							int ite = divergenceIndex(f, new Complex(config.minReal + pc.i * config.xStep, config.minImaginary + pc.j * config.yStep));
+//							Color color = c.apply(ite);
+//							int col = color.getRGB();
+//							img.setRGB(pc.i, pc.j, col);
+//						}
+//					});
+//					t.start();
+//					threads.add(t);
+//				}
+//				System.out.println("-- thread setup : " + (System.currentTimeMillis() - start) + "ms");
+//		
+//				for (Thread t : threads) {
+//					try {
+//						t.join();
+//					} catch (InterruptedException e) {
+//						e.printStackTrace();
+//					}
+//				}
 	
 		//		System.out.println("stack " + pcs.size());
 		//		BufferedImage dbi = null;
@@ -137,19 +171,7 @@ public class FractaleRenderEngine {
 		//
 		//	    img = dbi;
 	    Graphics2D g = img.createGraphics();
-	    String text = "";
-	    if (f.getName() == null) 
-	    	text = "f(z) = " + f.getDefinition();
-	    else 
-	    	text = f.getName() + " (f(z) = " + f.getDefinition() + ")";
-//	    text += "  xmin : " + config.minReal + " xmax : " + config.maxReal + " ymin : " + config.minImaginary +" y : " + config.maxImaginary;   
-	    text += String.format("   x [%.2f .. %.2f]  y [%.2f .. %.2f]", 
-	    		 config.minReal,
-	    		 config.maxReal,
-	    		 config.minImaginary,
-	    		 config.maxImaginary);
-	    text +=  String.format("  pixels : %dx%d ", config.outputWidth, config.outputHeight);
-	    g.drawString(text , 20, 20);
+//	    information(g, config, f);
 	    g.dispose();
 		System.out.println("-- generated fractal image " + config.outputWidth + "x" + config.outputHeight + " : " + (System.currentTimeMillis() - start) + "ms");
 		return img;
@@ -175,5 +197,21 @@ public class FractaleRenderEngine {
 //		}
 //		return ite;
 //	}
+	public static void information(Graphics2D g, FractaleRenderConfig config, JolieFonction f) { 
+	    String text = "";
+	    if (f.getName() == null) 
+	    	text = "f(z) = " + f.getDefinition();
+	    else 
+	    	text = f.getName() + " (f(z) = " + f.getDefinition() + ")";
+//	    text += "  xmin : " + config.minReal + " xmax : " + config.maxReal + " ymin : " + config.minImaginary +" y : " + config.maxImaginary;   
+	    text += String.format("   x [%.2f .. %.2f]  y [%.2f .. %.2f]", 
+	    		 config.minReal,
+	    		 config.maxReal,
+	    		 config.minImaginary,
+	    		 config.maxImaginary);
+	    text +=  String.format("  pixels : %dx%d ", config.outputWidth, config.outputHeight);
+	    g.drawString(text , 20, 20);
 
+	}
+	
 }

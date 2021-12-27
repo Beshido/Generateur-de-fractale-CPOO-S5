@@ -63,7 +63,7 @@ public class App {
 		ImagePanel imagePanel = new ImagePanel(c, JolieFonction.getJoliesFonctions().get(0), ColorScheme::colorScheme0);
 		imagePanel.setPreferredSize(new Dimension(1001, 1001));
 		frame.getContentPane().add(imagePanel, BorderLayout.CENTER);
-		imagePanel.setBackground(Color.GREEN);
+		//imagePanel.setBackground(Color.GREEN);
 		JFrame frame2 = new JFrame("Fractale controls");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		JPanel leftPanel = new JPanel();
