@@ -4,10 +4,17 @@
 package fractale;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Graphics2D;
 import java.awt.GridLayout;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintStream;
 
+import javax.imageio.ImageIO;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
@@ -124,13 +131,56 @@ public class App {
 		frame2.setVisible(true);
 	}
 
-	public static void main_(String[] args) {
-		//Schedule a job for the event-dispatching thread:
-		//creating and showing this application's GUI.
-		javax.swing.SwingUtilities.invokeLater(new Runnable() {
-			public void run() {
-				createAndShowGUI();
+	public static void main_(String[] args) throws IOException {
+		if (args.length > 0) {
+			System.out.println("LA GROSSE IMAGE SUR DISQUE");
+			if (args.length != 9) {
+				System.out.println("usage : <texte fonction> <min real> <max real> <min im> <max im> <output width> <output height> <color scheme> <output file>"); 
+			} else {
+				System.out.println("LA GROSSE GENERATION SUR DISQUE");
+				String fun          = args[0];
+				double minReal      = Double.parseDouble(args[1]);
+				double maxReal      = Double.parseDouble(args[2]);
+				double minImg       = Double.parseDouble(args[3]);
+				double maxImg       = Double.parseDouble(args[4]);
+				int    outputWidth  = Integer.parseInt(args[5]);
+				int    outputHeight = Integer.parseInt(args[6]);
+				ColorScheme col     = ColorScheme.getAllSchemes().get(Integer.parseInt(args[7]));
+				String fileName     = args[8];
+				JolieFonction f = new JolieFonction(fun);
+				FractaleRenderConfig c = new FractaleRenderConfig.Builder()
+						.outputWidth(outputWidth)
+						.outputHeight(outputHeight)
+						.realRange(minReal, maxReal)
+						.imgRange(minImg, maxImg)
+						.build();
+				BufferedImage img = new FractaleRenderEngine(FractaleRenderEngine.executorServiceInstance)
+						.generateFractaleImage(c,f, col.f);
+				FractaleRenderEngine.executorServiceInstance.shutdown();
+				Graphics2D g = img.createGraphics();
+				g.setColor(Color.WHITE);
+				FractaleRenderEngine.information(g, c, f);
+				g.dispose();
+				ImageIO.write(img, "PNG", new File(fileName + ".png"));
+				try (PrintStream ps = new PrintStream(fileName + ".txt")) {
+		            ps.println("fonction    : " + fun);
+		            ps.println("réel        : " + minReal + " " + maxReal);
+		            ps.println("imaginaire  : " + minImg + " " + maxImg);
+		            ps.println("taile       : " + outputWidth + "x" + outputHeight);
+		            ps.println("colorscheme : " + col.name);
+		            ps.flush();
+		        } catch (FileNotFoundException e) {
+		            e.printStackTrace();
+		        }
 			}
-		});
+		} else {
+			//Schedule a job for the event-dispatching thread:
+			//creating and showing this application's GUI.
+			javax.swing.SwingUtilities.invokeLater(new Runnable() {
+				public void run() {
+					createAndShowGUI();
+				}
+			});
+		}
 	}
 }
