@@ -4,7 +4,54 @@ import java.awt.Color;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.BiFunction;
-import java.util.function.Function;
+
+class ColorBezierQuad {
+	
+	private final Color c0, c1, c2;
+	
+	ColorBezierQuad(Color c0, Color c1, Color c2) {
+		this.c0 = c0;
+		this.c1 = c1;
+		this.c2 = c2;
+	}
+	
+	public static double get(double v0, double v1, double v2, double t) {
+		double t1 = 1 - t;
+		return t1 * t1 * v0 + 2 * t1 * t * v1 + t * t * v2;
+	}
+	
+	public Color getColor(double t) {
+		return new Color(
+				(int)get(c0.getRed(), c1.getRed(), c2.getRed(), t),
+				(int)get(c0.getGreen(), c1.getGreen(), c2.getGreen(), t),
+				(int)get(c0.getBlue(), c1.getBlue(), c2.getBlue(), t));
+	}
+	
+}
+
+class ColorBezierCube {
+	private final Color c0, c1, c2, c3;
+	
+	ColorBezierCube(Color c0, Color c1, Color c2, Color c3) {
+		this.c0 = c0;
+		this.c1 = c1;
+		this.c2 = c2;
+		this.c3 = c3;
+	}
+	
+	public static double get(double v0, double v1, double v2, double v3, double t) {
+		double t1 = 1 - t;
+		return t1 * t1 * t1 * v0 + 3 * t1 * t1 * t * v1 + 3 * t1 * t * t * v2 + t * t * t * v3;
+	}
+	
+	public Color getColor(double t) {
+		return new Color(
+				(int)get(c0.getRed(), c1.getRed(), c2.getRed(), c3.getRed(), t),
+				(int)get(c0.getGreen(), c1.getGreen(), c2.getGreen(), c3.getGreen(),t),
+				(int)get(c0.getBlue(), c1.getBlue(), c2.getBlue(), c3.getBlue(), t));
+	}
+
+}
 
 public class ColorScheme {
 	String name;
@@ -20,7 +67,12 @@ public class ColorScheme {
 				new ColorScheme("ColorScheme BLEU", ColorScheme::colorScheme0),
 				new ColorScheme("ColorScheme GREEN", ColorScheme::colorScheme1),
 				new ColorScheme("ColorScheme RED", ColorScheme::colorScheme2),
-				new ColorScheme("ColorScheme FLAMBOYANT", ColorScheme::colorScheme3));
+				new ColorScheme("ColorScheme FLAMBOYANT", ColorScheme::colorScheme3),
+				quadBzScheme("BGR", Color.BLUE, Color.GREEN, Color.RED),
+				quadBzScheme("BkGR", Color.BLACK, Color.GREEN, Color.RED),
+				quadBzScheme("BkRY", Color.BLACK, Color.RED, Color.YELLOW),
+				cubicBzScheme("KBGR", Color.BLACK, Color.BLUE, Color.GREEN, Color.RED)
+				);
 	}
 
 	public static Color colorScheme0(FractaleRenderConfig cfg, int iterations) {
@@ -43,7 +95,17 @@ public class ColorScheme {
 		//		return new Color(((iterations / 256) % 256) * 64, 0, iterations % 256);
 		return new Color(Color.HSBtoRGB((float)iterations/cfg.maxIterations, 0.7f, 0.7f));
 	}
-
+	
+	public static ColorScheme quadBzScheme(String name, Color c0, Color c1, Color c2) {
+		ColorBezierQuad cbzq = new ColorBezierQuad(c0, c1, c2);
+		return new ColorScheme(name, (cfg,its) -> cbzq.getColor(((double)its)/cfg.maxIterations));
+	}
+	
+	public static ColorScheme cubicBzScheme(String name, Color c0, Color c1, Color c2, Color c3) {
+		ColorBezierCube cbzq = new ColorBezierCube(c0, c1, c2, c3);
+		return new ColorScheme(name, (cfg,its) -> cbzq.getColor(((double)its)/cfg.maxIterations));
+	}
+	
 	public String toString () { 
 		return name;
 	}

@@ -4,24 +4,16 @@
 package fractale;
 
 import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.Dimension;
-import java.awt.GridBagLayout;
 import java.awt.GridLayout;
-import java.awt.geom.AffineTransform;
-import java.io.File;
 import java.io.IOException;
-import java.util.Stack;
 
-import javax.imageio.ImageIO;
-import javax.swing.BoxLayout;
 import javax.swing.JButton;
-import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
-import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
+
 enum WindowFitMode { 
 	MINFIT, 
 	MAXFIT,
@@ -44,7 +36,7 @@ public class App {
 
 	public static void main(String[] args) throws IOException {
 		System.out.println(new App().getGreeting());
-		FractaleRenderConfig c = FractaleRenderConfig.createSimple(1001, -1, 1);
+//		FractaleRenderConfig c = FractaleRenderConfig.createSimple(1001, -1, 1);
 		//		BufferedImage img = generateFractaleImage(c, App::f0, App::colorScheme1);
 		//		ImageIO.write(img, "PNG", new File("MyFile.png"));
 		main_(args);
@@ -69,6 +61,12 @@ public class App {
 		JPanel leftPanel = new JPanel();
 		leftPanel.setLayout(new GridLayout(0, 1));
 		frame2.getContentPane().add(leftPanel, BorderLayout.WEST);
+		JComboBox<ImagePanel.TransitionMode> trMode = new JComboBox<>(ImagePanel.TransitionMode.values());
+		trMode.addActionListener(e ->  {
+			System.out.println("selected : " + trMode.getSelectedItem());
+			imagePanel.setTransitionMode((ImagePanel.TransitionMode)trMode.getSelectedItem());
+		});
+		leftPanel.add(trMode);
 		JComboBox<ColorScheme> colorScheme = new JComboBox<>(ColorScheme.getAllSchemes().toArray(new ColorScheme[2]));
 		colorScheme.addActionListener(e ->  {
 			System.out.println("selected : " + colorScheme.getSelectedItem());
