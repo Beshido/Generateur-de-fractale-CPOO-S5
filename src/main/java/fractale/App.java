@@ -8,6 +8,8 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.GridLayout;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -15,6 +17,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 
 import javax.imageio.ImageIO;
+import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
@@ -48,6 +51,7 @@ public class App {
 		//		ImageIO.write(img, "PNG", new File("MyFile.png"));
 		main_(args);
 	}
+	
 	/**
 	 * Create the GUI and show it.  For thread safety,
 	 * this method should be invoked from the
@@ -68,18 +72,23 @@ public class App {
 		JPanel leftPanel = new JPanel();
 		leftPanel.setLayout(new GridLayout(0, 1));
 		frame2.getContentPane().add(leftPanel, BorderLayout.WEST);
+		
 		JComboBox<ImagePanel.TransitionMode> trMode = new JComboBox<>(ImagePanel.TransitionMode.values());
 		trMode.addActionListener(e ->  {
 			System.out.println("selected : " + trMode.getSelectedItem());
 			imagePanel.setTransitionMode((ImagePanel.TransitionMode)trMode.getSelectedItem());
 		});
+		trMode.setBorder(BorderFactory.createTitledBorder("transition interaction"));
 		leftPanel.add(trMode);
+		
 		JComboBox<ColorScheme> colorScheme = new JComboBox<>(ColorScheme.getAllSchemes().toArray(new ColorScheme[2]));
 		colorScheme.addActionListener(e ->  {
 			System.out.println("selected : " + colorScheme.getSelectedItem());
 			imagePanel.setColorScheme((ColorScheme)colorScheme.getSelectedItem());
 		});
+		colorScheme.setBorder(BorderFactory.createTitledBorder("color scheme"));
 		leftPanel.add(colorScheme);
+		
 //		JTextField realNumber = new JTextField();
 //		JTextField imaginaryNumber = new JTextField();  
 //		JButton generator = new JButton("Générer fractale");
@@ -98,22 +107,53 @@ public class App {
 //			imagePanel.setIterations((Integer)iterations.getSelectedItem());
 //		});
 
-		JComboBox<WindowFitMode> squareRender = new JComboBox<>(WindowFitMode.values());
-		
+		JComboBox<WindowFitMode> squareRender = new JComboBox<>(WindowFitMode.values());		
 		leftPanel.add(squareRender);
 		squareRender.addActionListener(e -> {
 			// imagePanel.setSquareRendering(squareRender.isSelected());
 			imagePanel.setWindowFitMode((WindowFitMode)squareRender.getSelectedItem());
 		});
+		squareRender.setBorder(BorderFactory.createTitledBorder("image fit mode"));
 		squareRender.setSelectedItem(WindowFitMode.FILL);
+		
+		
 //		squareRender.setSelected(false);
 		JTextField function = new JTextField();
-		leftPanel.add(function);
-		JButton generatorFun = new JButton("Générer fonction");
-		generatorFun.addActionListener(e -> {
-			imagePanel.setFunction(new JolieFonction(function.getText()));
+		function.setBorder(BorderFactory.createTitledBorder("texte fonction"));
+		function.addKeyListener(new KeyListener() {
+
+			@Override
+			public void keyPressed(KeyEvent arg0) {
+				updateFunction();
+			}
+
+			@Override
+			public void keyReleased(KeyEvent arg0) {
+				updateFunction();
+			}
+
+			@Override
+			public void keyTyped(KeyEvent arg0) {
+				updateFunction();
+			}
+			
+			void updateFunction() {
+				try {
+					imagePanel.setFunction(new JolieFonction(function.getText()));
+					function.setBackground(Color.WHITE);
+				} catch (Exception e) {
+					function.setBackground(Color.RED);
+				}
+			}
+			
 		});
-		leftPanel.add(generatorFun);
+		leftPanel.add(function);
+		
+//		JButton generatorFun = new JButton("Générer fonction");
+//		generatorFun.addActionListener(e -> {
+//			imagePanel.setFunction(new JolieFonction(function.getText()));
+//		});
+//		leftPanel.add(generatorFun);
 		
 		JComboBox<JolieFonction> joliesFonction = new JComboBox<>(JolieFonction.getJoliesFonctions().toArray(new JolieFonction[0]));
 		joliesFonction.addActionListener(e ->  {
@@ -122,7 +162,17 @@ public class App {
 			imagePanel.setFunction(f);
 			function.setText(f.getDefinition());
 		});
+		joliesFonction.setSelectedIndex(0);
+		joliesFonction.setBorder(BorderFactory.createTitledBorder("fonction predefinie"));
 		leftPanel.add(joliesFonction);
+		
+		JComboBox<Double> zoomSpeed = new JComboBox<>(new Double[] { 1.01, 1.03, 1.05, 1.07, 1.1, 1.2 });
+		zoomSpeed.addActionListener(e ->  {
+			imagePanel.zoomSpeed = (Double)zoomSpeed.getSelectedItem();
+		});
+		zoomSpeed.setBorder(BorderFactory.createTitledBorder("zoom speed"));
+		zoomSpeed.setSelectedIndex(5);
+		leftPanel.add(zoomSpeed);
 
 		//Display the window.
 		frame.pack();

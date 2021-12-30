@@ -45,6 +45,11 @@ public class FractaleRenderConfig {
 			return c;
 		}
 
+		public Builder maxIterations(int maxIterations) {
+			c.maxIterations = maxIterations;
+			return this;
+		}
+
 	}
 	
 	int outputWidth;
@@ -74,8 +79,7 @@ public class FractaleRenderConfig {
 	public void setOutputSize(int w, int h) {
 		outputWidth = w;
 		outputHeight = h;
-		xStep = (maxReal - minReal) / (outputWidth-1);
-		yStep = (maxImaginary - minImaginary) / (outputHeight-1);
+		updateSteps();
 	}
 
 	public void ranges(double minR, double maxR, double minI, double maxI) {
@@ -83,8 +87,39 @@ public class FractaleRenderConfig {
 		this.maxReal = maxR;
 		this.minImaginary = minI;
 		this.maxImaginary = maxI;
-		setOutputSize(outputWidth, outputHeight);
+		updateSteps();
 	}
 	
+	public void updateSteps() {
+		xStep = (maxReal - minReal) / (outputWidth-1);
+		yStep = (maxImaginary - minImaginary) / (outputHeight-1);
+	}
+	
+	public void move(double dReal, double dImaginary) {
+		this.minReal      += dReal;
+		this.maxReal      += dReal;
+		this.minImaginary += dImaginary;
+		this.maxImaginary += dImaginary;
+	}
+	
+	/**
+	 * Mise a l'echelle autour du centre courrant.
+	 * @param value
+	 */
+	public void scale(double value) {
+		scale(value, value);
+	}
+	
+	public void scale(double realScale, double imaginaryScale) {
+		double cReal      = (maxReal + minReal) / 2;
+		double cImaginary = (maxImaginary + minImaginary) / 2;
+		double dReal      = (maxReal - cReal) * realScale;
+		double dImaginary = (maxImaginary - cImaginary) * imaginaryScale;
+		minReal      = cReal - dReal;
+		maxReal      = cReal + dReal;
+		minImaginary = cImaginary - dImaginary;
+		maxImaginary = cImaginary + dImaginary;
+		updateSteps();
+	}
 	
 }

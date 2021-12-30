@@ -5,6 +5,8 @@ import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionListener;
 import java.awt.event.MouseWheelEvent;
@@ -49,30 +51,6 @@ class BufferedImagePool {
 	
 }
 
-//class LocalImagePool implements AutoCloseable {
-//	
-//	private final BufferedImagePool pool;
-//	
-//	private final List<BufferedImage> images;
-//	
-//	public LocalImagePool() {
-//		pool = BufferedImagePool.instance;
-//		images = new ArrayList<>();
-//	}
-//	
-//	public BufferedImage get(int w, int h) {
-//		BufferedImage i = pool.get(w, h);
-//		return i;
-//	}
-//
-//	@Override
-//	public void close() throws Exception {
-//		for (BufferedImage i : images)
-//			pool.free(i);
-//	}
-//	
-//}
-
 class ImagePanel extends JPanel {
 	
 	public enum TransitionMode {
@@ -111,6 +89,27 @@ class ImagePanel extends JPanel {
 		}
 	}
 	
+	void renderCenteredScaled(Graphics2D g, BufferedImage img, double scale) {
+		if (scale > 1) {  
+			int srcWidth  = (int)(img.getWidth()  / scale);
+			int srcHeight = (int)(img.getHeight() / scale);
+			int srcX = (img.getWidth()  - srcWidth) / 2;
+			int srcY = (img.getHeight() - srcHeight) / 2;
+			g.drawImage(img, 
+					0,     0,     config.outputWidth-1, config.outputHeight-1, 
+					srcX, srcY, srcX + srcWidth-1,     srcY + srcHeight-1, 
+					null);
+		} else {
+			int dstWidth  = (int)(img.getWidth()  * scale);
+			int dstHeight = (int)(img.getHeight() * scale);
+			int dstX = (img.getWidth() - dstWidth) / 2;
+			int dstY = (img.getHeight() - dstHeight) / 2;
+			g.drawImage(img, 
+					dstX, dstY, dstX + dstWidth - 1, dstY + dstHeight - 1, 
+					0,     0,     img.getWidth()-1, img.getHeight()-1, null);
+		}
+	}
+	
 	class EventHandlerFlicking implements ImagePanelEventHandler {
 		
 		int lastX;
@@ -121,9 +120,10 @@ class ImagePanel extends JPanel {
 			int wdx = e.getX() - lastX;
 			int wdy = e.getY() - lastY;
 			System.out.println("Je suis dragué  " + wdx + " x " + wdy);
-			double wfdx = config.xStep * wdx;
-			double wfdy = config.yStep * wdy;
-			config.ranges(config.minReal - wfdx, config.maxReal - wfdx, config.minImaginary - wfdy, config.maxImaginary - wfdy);
+//			double wfdx = config.xStep * wdx;
+//			double wfdy = config.yStep * wdy;
+//			config.ranges(config.minReal - wfdx, config.maxReal - wfdx, config.minImaginary - wfdy, config.maxImaginary - wfdy);
+			config.move(- config.xStep * wdx, - config.yStep * wdy);
 			imgX += wdx;
 			imgY += wdy;
 			repaint();
@@ -142,40 +142,37 @@ class ImagePanel extends JPanel {
 		public void mouseWheelMoved(MouseWheelEvent e) {
 			if (e.getScrollType() == MouseWheelEvent.WHEEL_UNIT_SCROLL) {
 				List<BufferedImage> imgs = new ArrayList<>();
-				final double zoomAmount = 1.1;
-				double zoomFactor = zoomAmount * e.getWheelRotation();
-				if (e.getWheelRotation() < 0)
-					zoomFactor = - 1 / zoomFactor;
-				zoom *= zoomFactor;
-				double zv = zoom; // 1 - zoom;
-				System.out.println("wheel : " + e.getWheelRotation() + " current zoom : " + zoom + " zf " + zoomFactor);
-				double fcx = (config.maxReal + config.minReal)/2;
-				double fcy = (config.maxImaginary + config.minImaginary)/2;
-				config.ranges(fcx - zv, fcx + zv, fcy - zv, fcy + zv);
+				double zoomFactor = scaleFromMouseWheel(e.getWheelRotation());
+				config.scale(zoomFactor);
 				BufferedImage img3 = BufferedImagePool.instance.get(config.outputWidth, config.outputHeight);
 				imgs.add(img3);
 				Graphics2D g = img3.createGraphics();
-				if (zoomFactor < 1) {  
-					int srcWidth  = (int)(img.getWidth()  * zoomFactor);
-					int srcHeight = (int)(img.getHeight() * zoomFactor);
-					int srcDx = (img.getWidth() - srcWidth) / 2;
-						int srcDy = (img.getHeight() - srcHeight) / 2;
-					System.out.println("z " + srcWidth + " x " + srcHeight + " o " + srcDx + " " + srcDy);
-					g.drawImage(img, 
-							0,     0, config.outputWidth-1, config.outputHeight-1, 
-							srcDx, srcDy, srcDx + srcWidth,             srcDy + srcHeight, 
-							null);
-				} else {
-					int srcWidth  = (int)(img.getWidth()  / zoomFactor);
-					int srcHeight = (int)(img.getHeight() / zoomFactor);
-					int srcDx = (img.getWidth() - srcWidth) / 2;
-					int srcDy = (img.getHeight() - srcHeight) / 2;
+//				if (zoomFactor < 1) {  
+//					int srcWidth  = (int)(img.getWidth()  * zoomFactor);
+//					int srcHeight = (int)(img.getHeight() * zoomFactor);
+//					int srcDx = (img.getWidth() - srcWidth) / 2 + 1;
+//					int srcDy = (img.getHeight() - srcHeight) / 2 + 1;
+//					System.out.println("z " + srcWidth + " x " + srcHeight + " o " + srcDx + " " + srcDy);
+//					g.drawImage(img, 
+//							0,     0,     config.outputWidth-1, config.outputHeight-1, 
+//							srcDx, srcDy, srcDx + srcWidth,     srcDy + srcHeight, 
+//							null);
+//				} else {
+//					int srcWidth  = (int)(img.getWidth()  / zoomFactor);
+//					int srcHeight = (int)(img.getHeight() / zoomFactor);
+//					int srcDx = (img.getWidth() - srcWidth) / 2 + 1;
+//					int srcDy = (img.getHeight() - srcHeight) / 2 + 1;
+//					g.setColor(Color.BLACK);
+//					g.fillRect(0, 0, config.outputWidth, config.outputHeight);
+//					g.drawImage(img, 
+//							srcDx, srcDy, srcDx + srcWidth, srcDy + srcHeight, 
+//							0,     0,     img.getWidth()-1, img.getHeight()-1, null);
+//				}
+				if (zoomFactor > 1) {
 					g.setColor(Color.BLACK);
 					g.fillRect(0, 0, config.outputWidth, config.outputHeight);
-					g.drawImage(img, 
-							srcDx, srcDy, srcDx + srcWidth,             srcDy + srcHeight, 
-							0, 0, img.getWidth()-1, img.getHeight()-1, null);
 				}
+				renderCenteredScaled(g, img, 1 / zoomFactor);
 			    g.dispose();
 			    imgX = 0;
 				imgY = 0;
@@ -198,16 +195,18 @@ class ImagePanel extends JPanel {
 		
 		@Override
 		public void mouseWheelMoved(MouseWheelEvent e) {
-			final double zoomAmount = 1.1;
-			double zoomFactor = zoomAmount * e.getWheelRotation();
-			if (e.getWheelRotation() < 0)
-				zoomFactor = - 1 / zoomFactor;
-			zoom *= zoomFactor;
-			double zv = zoom; // 1 - zoom;
-			System.out.println("wheel : " + e.getWheelRotation() + " current zoom : " + zoom + " zf " + zoomFactor);
-			double fcx = (config.maxReal + config.minReal)/2;
-			double fcy = (config.maxImaginary + config.minImaginary)/2;
-			config.ranges(fcx - zv, fcx + zv, fcy - zv, fcy + zv);
+//			final double zoomAmount = 1.1;
+//			double zoomFactor = zoomAmount * e.getWheelRotation();
+//			if (e.getWheelRotation() < 0)
+//				zoomFactor = - 1 / zoomFactor;
+//			zoom *= zoomFactor;
+//			double zv = zoom; // 1 - zoom;
+//			System.out.println("wheel : " + e.getWheelRotation() + " current zoom : " + zoom + " zf " + zoomFactor);
+//			double fcx = (config.maxReal + config.minReal)/2;
+//			double fcy = (config.maxImaginary + config.minImaginary)/2;
+//			config.ranges(fcx - zv, fcx + zv, fcy - zv, fcy + zv);
+			double zoomFactor = scaleFromMouseWheel(e.getWheelRotation());
+			config.scale(zoomFactor);
 			BufferedImage img3 = BufferedImagePool.instance.get(config.outputWidth, config.outputHeight);
 			Graphics2D g = img3.createGraphics();
 			FractaleRenderConfig nc = new FractaleRenderConfig.Builder()
@@ -234,13 +233,14 @@ class ImagePanel extends JPanel {
 			int wdx = e.getX() - lastX;
 			int wdy = e.getY() - lastY;
 			System.out.println("Je suis dragué  " + wdx + " x " + wdy);
-			double wfdx = config.xStep * wdx;
-			double wfdy = config.yStep * wdy;
-			
-			config.maxReal -= wfdx;
-			config.minReal -= wfdx;
-			config.maxImaginary -= wfdy;
-			config.minImaginary -= wfdy;
+//			double wfdx = config.xStep * wdx;
+//			double wfdy = config.yStep * wdy;
+//			
+//			config.maxReal -= wfdx;
+//			config.minReal -= wfdx;
+//			config.maxImaginary -= wfdy;
+//			config.minImaginary -= wfdy;
+			config.move(- config.xStep * wdx, - config.yStep * wdy);
 			FractaleRenderConfig nc = new FractaleRenderConfig.Builder()
 					.outputWidth (resolution)
 					.realRange   (config.minReal,      config.maxReal)
@@ -280,34 +280,56 @@ class ImagePanel extends JPanel {
 		
 		@Override
 		public void mouseWheelMoved(MouseWheelEvent e) {
-			final double zoomAmount = 1.1;
-			double zoomFactor = zoomAmount * e.getWheelRotation();
-			if (e.getWheelRotation() < 0)
-				zoomFactor = - 1 / zoomFactor;
-			zoom *= zoomFactor;
-			double zv = zoom; // 1 - zoom;
-			System.out.println("wheel : " + e.getWheelRotation() + " current zoom : " + zoom + " zf " + zoomFactor);
-			double fcx = (config.maxReal + config.minReal)/2;
-			double fcy = (config.maxImaginary + config.minImaginary)/2;
-			config .minReal      = fcx - zv;
-			config .maxReal      = fcx + zv;
-			config .minImaginary = fcy - zv;
-			config .maxImaginary = fcy + zv;
-			config.ranges(fcx - zv, fcx + zv, fcy - zv, fcy + zv);
+//			final double zoomAmount = 1.1;
+//			double zoomFactor = zoomAmount * e.getWheelRotation();
+//			if (e.getWheelRotation() < 0)
+//				zoomFactor = - 1 / zoomFactor;
+//			zoom *= zoomFactor;
+//			double zv = zoom; // 1 - zoom;
+//			System.out.println("wheel : " + e.getWheelRotation() + " current zoom : " + zoom + " zf " + zoomFactor);
+//			double fcx = (config.maxReal + config.minReal)/2;
+//			double fcy = (config.maxImaginary + config.minImaginary)/2;
+//			config .minReal      = fcx - zv;
+//			config .maxReal      = fcx + zv;
+//			config .minImaginary = fcy - zv;
+//			config .maxImaginary = fcy + zv;
+//			config.ranges(fcx - zv, fcx + zv, fcy - zv, fcy + zv);
+			double zoomFactor = scaleFromMouseWheel(e.getWheelRotation());
+			config.scale(zoomFactor);
 			// BufferedImage img3 = new BufferedImage(config.outputWidth, config.outputHeight, BufferedImage.TYPE_INT_RGB);
 			BufferedImage img3 = BufferedImagePool.instance.get(config.outputWidth, config.outputHeight);
 			Graphics2D g = img3.createGraphics();
-			if (zoomFactor < 1) {  
-				int srcWidth  = (int)(img.getWidth()  * zoomFactor);
-				int srcHeight = (int)(img.getHeight() * zoomFactor);
-				int srcDx = (img.getWidth() - srcWidth) / 2;
-					int srcDy = (img.getHeight() - srcHeight) / 2;
-				System.out.println("z " + srcWidth + " x " + srcHeight + " o " + srcDx + " " + srcDy);
-				g.drawImage(img, 
-						0,     0, config.outputWidth-1, config.outputHeight-1, 
-						srcDx, srcDy, srcDx + srcWidth,             srcDy + srcHeight, 
-						null);
-			} else {
+//			if (zoomFactor < 1) {  
+//				int srcWidth  = (int)(img.getWidth()  * zoomFactor);
+//				int srcHeight = (int)(img.getHeight() * zoomFactor);
+//				int srcDx = (img.getWidth() - srcWidth) / 2;
+//					int srcDy = (img.getHeight() - srcHeight) / 2;
+//				System.out.println("z " + srcWidth + " x " + srcHeight + " o " + srcDx + " " + srcDy);
+//				g.drawImage(img, 
+//						0,     0, config.outputWidth-1, config.outputHeight-1, 
+//						srcDx, srcDy, srcDx + srcWidth,             srcDy + srcHeight, 
+//						null);
+//			} else {
+//				FractaleRenderConfig nc = new FractaleRenderConfig.Builder()
+//						.outputWidth (resolution)
+//						.realRange   (config.minReal,      config.maxReal)
+//						.outputHeight(resolution)
+//						.imgRange    (config.minImaginary, config.maxImaginary)
+//						.build();
+//				BufferedImage img2 = new FractaleRenderEngine(FractaleRenderEngine.executorServiceInstance).generateFractaleImage(nc, f, c);
+//				g.drawImage(img2, 
+//						0,0, config.outputWidth-1, config.outputHeight-1, 
+//						0, 0, img2.getWidth()-1, img2.getHeight()-1, null);
+//				int srcWidth  = (int)(img.getWidth()  / zoomFactor);
+//				int srcHeight = (int)(img.getHeight() / zoomFactor);
+//				int srcDx = (img.getWidth() - srcWidth) / 2;
+//					int srcDy = (img.getHeight() - srcHeight) / 2;
+//				g.drawImage(img, 
+//						srcDx, srcDy, srcDx + srcWidth,             srcDy + srcHeight, 
+//						0, 0, img.getWidth()-1, img.getHeight()-1, null);
+//				BufferedImagePool.instance.free(img2);
+//			}
+			if (zoomFactor > 1) {
 				FractaleRenderConfig nc = new FractaleRenderConfig.Builder()
 						.outputWidth (resolution)
 						.realRange   (config.minReal,      config.maxReal)
@@ -318,15 +340,9 @@ class ImagePanel extends JPanel {
 				g.drawImage(img2, 
 						0,0, config.outputWidth-1, config.outputHeight-1, 
 						0, 0, img2.getWidth()-1, img2.getHeight()-1, null);
-				int srcWidth  = (int)(img.getWidth()  / zoomFactor);
-				int srcHeight = (int)(img.getHeight() / zoomFactor);
-				int srcDx = (img.getWidth() - srcWidth) / 2;
-					int srcDy = (img.getHeight() - srcHeight) / 2;
-				g.drawImage(img, 
-						srcDx, srcDy, srcDx + srcWidth,             srcDy + srcHeight, 
-						0, 0, img.getWidth()-1, img.getHeight()-1, null);
-				BufferedImagePool.instance.free(img2);
 			}
+			renderCenteredScaled(g, img, 1 / zoomFactor);
+			
 		    g.dispose();
 		    imgX = 0;
 			imgY = 0;
@@ -340,14 +356,15 @@ class ImagePanel extends JPanel {
 		public void mouseDragged(MouseEvent e) {
 			int wdx = e.getX() - lastX;
 			int wdy = e.getY() - lastY;
-			System.out.println("Je suis dragué  " + wdx + " x " + wdy);
-			double wfdx = config.xStep * wdx;
-			double wfdy = config.yStep * wdy;
-			
-			config.maxReal -= wfdx;
-			config.minReal -= wfdx;
-			config.maxImaginary -= wfdy;
-			config.minImaginary -= wfdy;
+//			System.out.println("Je suis dragué  " + wdx + " x " + wdy);
+//			double wfdx = config.xStep * wdx;
+//			double wfdy = config.yStep * wdy;
+//			
+//			config.maxReal -= wfdx;
+//			config.minReal -= wfdx;
+//			config.maxImaginary -= wfdy;
+//			config.minImaginary -= wfdy;
+			config.move(- config.xStep * wdx, - config.yStep * wdy);
 			FractaleRenderConfig nc = new FractaleRenderConfig.Builder()
 					.outputWidth (200)
 					.realRange   (config.minReal,      config.maxReal)
@@ -388,49 +405,157 @@ class ImagePanel extends JPanel {
 		@Override
 		public void mouseWheelMoved(MouseWheelEvent e) {
 			List<BufferedImage> imgs = new ArrayList<>();
-			final double zoomAmount = 1.1;
-			double zoomFactor = zoomAmount * e.getWheelRotation();
-			if (e.getWheelRotation() < 0)
-				zoomFactor = - 1 / zoomFactor;
-			zoom *= zoomFactor;
-			double zv = zoom; // 1 - zoom;
-			System.out.println("wheel : " + e.getWheelRotation() + " current zoom : " + zoom + " zf " + zoomFactor);
-			double fcx = (config.maxReal + config.minReal)/2;
-			double fcy = (config.maxImaginary + config.minImaginary)/2;
-			config .minReal      = fcx - zv; // += (0.1 * e.getWheelRotation());
-			config .maxReal      = fcx + zv; //(0.1 * e.getWheelRotation());
-			config .minImaginary = fcy - zv; //(0.1 * e.getWheelRotation());
-			config .maxImaginary = fcy + zv; // (0.1 * e.getWheelRotation());
-			config.ranges(fcx - zv, fcx + zv, fcy - zv, fcy + zv);
+//			final double zoomAmount = 1.1;
+//			double zoomFactor = zoomAmount * e.getWheelRotation();
+//			if (e.getWheelRotation() < 0)
+//				zoomFactor = - 1 / zoomFactor;
+//			zoom *= zoomFactor;
+//			double zv = zoom; // 1 - zoom;
+//			System.out.println("wheel : " + e.getWheelRotation() + " current zoom : " + zoom + " zf " + zoomFactor);
+//			double fcx = (config.maxReal + config.minReal)/2;
+//			double fcy = (config.maxImaginary + config.minImaginary)/2;
+//			config .minReal      = fcx - zv; // += (0.1 * e.getWheelRotation());
+//			config .maxReal      = fcx + zv; //(0.1 * e.getWheelRotation());
+//			config .minImaginary = fcy - zv; //(0.1 * e.getWheelRotation());
+//			config .maxImaginary = fcy + zv; // (0.1 * e.getWheelRotation());
+//			config.ranges(fcx - zv, fcx + zv, fcy - zv, fcy + zv);
+			double zoomFactor = scaleFromMouseWheel(e.getWheelRotation());
+			config.scale(zoomFactor);
 			// BufferedImage img3 = new BufferedImage(config.outputWidth, config.outputHeight, BufferedImage.TYPE_INT_RGB);
 			BufferedImage img3 = BufferedImagePool.instance.get(config.outputWidth, config.outputHeight);
 			Graphics2D g = img3.createGraphics();
+//			if (zoomFactor < 1) {  
+//				int srcWidth  = (int)(img.getWidth()  * zoomFactor);
+//				int srcHeight = (int)(img.getHeight() * zoomFactor);
+//				int srcDx = (img.getWidth() - srcWidth) / 2;
+//				int srcDy = (img.getHeight() - srcHeight) / 2;
+//				System.out.println("** z " + srcWidth + " x " + srcHeight + " o " + srcDx + " " + srcDy);
+//				int sz = 200;     
+//				int sx = (config.outputWidth - 200) / 2;
+//				int sy = (config.outputHeight - 200) / 2;
+//				System.out.println("zoom in " + sx + "x" + sy);
+//				FractaleRenderConfig nc = new FractaleRenderConfig.Builder()
+//						.outputWidth (sz)
+//						.realRange   (config.minReal + sx * config.xStep,      config.minReal + (sx + sz) * config.xStep)
+//						.outputHeight(sz)
+//						.imgRange    (config.minImaginary + sy * config.yStep, config.minImaginary + (sy + sz) * config.yStep)
+//						.build();
+//				BufferedImage img2 = new FractaleRenderEngine(FractaleRenderEngine.executorServiceInstance).generateFractaleImage(nc, f, c);
+//				imgs.add(img2);
+////				g.setColor(Color.RED);
+////				g.fillRect(0, 0, sx, sy);
+//				
+//				g.drawImage(img, 
+//						0,     0, config.outputWidth-1, config.outputHeight-1, 
+//						srcDx, srcDy, srcDx + srcWidth,             srcDy + srcHeight, 
+////						0,     0, config.outputWidth-1, config.outputHeight-1, 
+//						null);
+//				g.drawImage(img2, sx, sy, null);
+////				g.drawImage(img, 0, 0, null);
+////				BufferedImagePool.instance.free(img2);
+//			} else {
+////				FractaleRenderConfig nc = new FractaleRenderConfig.Builder()
+////						.outputWidth (200)
+////						.realRange   (config.minReal,      config.maxReal)
+////						.outputHeight(200)
+////						.imgRange    (config.minImaginary, config.maxImaginary)
+////						.build();
+////				BufferedImage img2 = new FractaleRenderEngine(FractaleRenderEngine.executorServiceInstance).generateFractaleImage(nc, f, c);
+////				imgs.add(img2);
+////				//					g.setColor(Color.RED);
+////				//					g.fillRect(0, 0, config.outputWidth, config.outputHeight);
+////				g.drawImage(img2, 
+////						0,0, config.outputWidth-1, config.outputHeight-1, 
+////						0, 0, img2.getWidth()-1, img2.getHeight()-1, null);
+//				int srcWidth  = (int)(img.getWidth()  / zoomFactor);
+//				int srcHeight = (int)(img.getHeight() / zoomFactor);
+//				int srcDx = (img.getWidth() - srcWidth) / 2;
+//				int srcDy = (img.getHeight() - srcHeight) / 2;
+//				g.drawImage(img, 
+//						srcDx, srcDy, srcDx + srcWidth,             srcDy + srcHeight, 
+//						0, 0, img.getWidth()-1, img.getHeight()-1, null);
+//				
+//				// Generate missing 4 borders
+//				{
+//					FractaleRenderConfig nc = new FractaleRenderConfig.Builder()
+//							.outputWidth (srcDx)
+//							.realRange   (config.minReal,      config.minReal + srcDx * config.xStep)
+//							.outputHeight(config.outputHeight)
+//							.imgRange    (config.minImaginary, config.maxImaginary)
+//							.build();
+//					BufferedImage img2 = new FractaleRenderEngine(FractaleRenderEngine.executorServiceInstance).generateFractaleImage(nc, f, c);
+//					imgs.add(img2);
+//					g.drawImage(img2, 0, 0, null);
+//				}
+//				{
+//					FractaleRenderConfig nc = new FractaleRenderConfig.Builder()
+//							.outputWidth (srcDx)
+//							.realRange   (config.maxReal - srcDx * config.xStep,      config.maxReal)
+//							.outputHeight(config.outputHeight)
+//							.imgRange    (config.minImaginary, config.maxImaginary)
+//							.build();
+//					BufferedImage img2 = new FractaleRenderEngine(FractaleRenderEngine.executorServiceInstance).generateFractaleImage(nc, f, c);
+//					imgs.add(img2);
+//					g.drawImage(img2, config.outputWidth - srcDx, 0, null);
+//				}
+//				{
+//					FractaleRenderConfig nc = new FractaleRenderConfig.Builder()
+//							.outputWidth (config.outputWidth)
+//							.realRange   (config.minReal,      config.maxReal)
+//							.outputHeight(srcDy)
+//							.imgRange    (config.minImaginary, config.minImaginary + srcDy * config.yStep)
+//							.build();
+//					BufferedImage img2 = new FractaleRenderEngine(FractaleRenderEngine.executorServiceInstance).generateFractaleImage(nc, f, c);
+//					imgs.add(img2);
+//					g.drawImage(img2, 0, 0, null);
+//				}
+//				{
+//					FractaleRenderConfig nc = new FractaleRenderConfig.Builder()
+//							.outputWidth (config.outputWidth)
+//							.realRange   (config.minReal,      config.maxReal)
+//							.outputHeight(srcDy)
+//							.imgRange    (config.maxImaginary - srcDy * config.yStep, config.maxImaginary)
+//							.build();
+//					BufferedImage img2 = new FractaleRenderEngine(FractaleRenderEngine.executorServiceInstance).generateFractaleImage(nc, f, c);
+//					imgs.add(img2);
+//					g.drawImage(img2, 0, config.outputHeight - srcDy, null);
+//				}
+////				g.setColor(Color.RED);
+////				g.drawRect(0, 0, srcDx, config.outputHeight);
+////				g.drawRect(config.outputWidth - srcDx, 0, srcDx, config.outputHeight);
+////				g.drawRect(0, 0, config.outputWidth, srcDy);
+////				g.drawRect(0, config.outputHeight - srcDy, config.outputWidth, srcDy);
+//				
+////				BufferedImagePool.instance.free(img2);
+////				g.drawImage(img, 0, 0, null);
+//			}
 			if (zoomFactor < 1) {  
-				int srcWidth  = (int)(img.getWidth()  * zoomFactor);
-				int srcHeight = (int)(img.getHeight() * zoomFactor);
-				int srcDx = (img.getWidth() - srcWidth) / 2;
-				int srcDy = (img.getHeight() - srcHeight) / 2;
-				System.out.println("** z " + srcWidth + " x " + srcHeight + " o " + srcDx + " " + srcDy);
+//				int srcWidth  = (int)(img.getWidth()  * zoomFactor);
+//				int srcHeight = (int)(img.getHeight() * zoomFactor);
+//				int srcDx = (img.getWidth() - srcWidth) / 2;
+//				int srcDy = (img.getHeight() - srcHeight) / 2;
+//				System.out.println("** z " + srcWidth + " x " + srcHeight + " o " + srcDx + " " + srcDy);
 				int sz = 200;     
 				int sx = (config.outputWidth - 200) / 2;
 				int sy = (config.outputHeight - 200) / 2;
-				System.out.println("zoom in " + sx + "x" + sy);
+//				System.out.println("zoom in " + sx + "x" + sy);
 				FractaleRenderConfig nc = new FractaleRenderConfig.Builder()
 						.outputWidth (sz)
-						.realRange   (config.minReal + sx * config.xStep,      config.minReal + (sx + sz) * config.xStep)
+						.realRange   (config.minReal + sx * config.xStep,      config.minReal + (sx + sz -1) * config.xStep)
 						.outputHeight(sz)
-						.imgRange    (config.minImaginary + sy * config.yStep, config.minImaginary + (sy + sz) * config.yStep)
+						.imgRange    (config.minImaginary + sy * config.yStep, config.minImaginary + (sy + sz -1) * config.yStep)
 						.build();
 				BufferedImage img2 = new FractaleRenderEngine(FractaleRenderEngine.executorServiceInstance).generateFractaleImage(nc, f, c);
 				imgs.add(img2);
 //				g.setColor(Color.RED);
 //				g.fillRect(0, 0, sx, sy);
 				
-				g.drawImage(img, 
-						0,     0, config.outputWidth-1, config.outputHeight-1, 
-						srcDx, srcDy, srcDx + srcWidth,             srcDy + srcHeight, 
+//				g.drawImage(img, 
 //						0,     0, config.outputWidth-1, config.outputHeight-1, 
-						null);
+//						srcDx, srcDy, srcDx + srcWidth,             srcDy + srcHeight, 
+////						0,     0, config.outputWidth-1, config.outputHeight-1, 
+//						null);
+				renderCenteredScaled(g, img, 1 / zoomFactor);
 				g.drawImage(img2, sx, sy, null);
 //				g.drawImage(img, 0, 0, null);
 //				BufferedImagePool.instance.free(img2);
@@ -452,17 +577,41 @@ class ImagePanel extends JPanel {
 				int srcHeight = (int)(img.getHeight() / zoomFactor);
 				int srcDx = (img.getWidth() - srcWidth) / 2;
 				int srcDy = (img.getHeight() - srcHeight) / 2;
-				g.drawImage(img, 
-						srcDx, srcDy, srcDx + srcWidth,             srcDy + srcHeight, 
-						0, 0, img.getWidth()-1, img.getHeight()-1, null);
-				
-				// Generate missing 4 borders
+//				g.drawImage(img, 
+//						srcDx, srcDy, srcDx + srcWidth,             srcDy + srcHeight, 
+//						0, 0, img.getWidth()-1, img.getHeight()-1, null);
+				renderCenteredScaled(g, img, 1 / zoomFactor);
+				// Generation des 4 bords manquants
 				{
 					FractaleRenderConfig nc = new FractaleRenderConfig.Builder()
 							.outputWidth (srcDx)
-							.realRange   (config.minReal,      config.minReal + srcDx * config.xStep)
+							.realRange   (config.minReal,      config.minReal + (srcDx - 1) * config.xStep)
 							.outputHeight(config.outputHeight)
 							.imgRange    (config.minImaginary, config.maxImaginary)
+							.build();
+					System.out.println("" + config.xStep + " " + nc.xStep);
+					BufferedImage img2 = new FractaleRenderEngine(FractaleRenderEngine.executorServiceInstance).generateFractaleImage(nc, f, c);
+					imgs.add(img2);
+					g.drawImage(img2, 0, 0, null);
+				}
+				{
+					FractaleRenderConfig nc = new FractaleRenderConfig.Builder()
+							.outputWidth (srcDx + 2)
+							.realRange   (config.maxReal - (srcDx + 1) * config.xStep,      config.maxReal)
+							.outputHeight(config.outputHeight)
+							.imgRange    (config.minImaginary, config.maxImaginary)
+							.build();
+					System.out.println("" + config.xStep + " " + nc.xStep);
+					BufferedImage img2 = new FractaleRenderEngine(FractaleRenderEngine.executorServiceInstance).generateFractaleImage(nc, f, c);
+					imgs.add(img2);
+					g.drawImage(img2, config.outputWidth - srcDx - 2, 0, null);
+				}
+				{
+					FractaleRenderConfig nc = new FractaleRenderConfig.Builder()
+							.outputWidth (config.outputWidth)
+							.realRange   (config.minReal,      config.maxReal)
+							.outputHeight(srcDy)
+							.imgRange    (config.minImaginary, config.minImaginary + (srcDy - 1) * config.yStep)
 							.build();
 					BufferedImage img2 = new FractaleRenderEngine(FractaleRenderEngine.executorServiceInstance).generateFractaleImage(nc, f, c);
 					imgs.add(img2);
@@ -470,45 +619,15 @@ class ImagePanel extends JPanel {
 				}
 				{
 					FractaleRenderConfig nc = new FractaleRenderConfig.Builder()
-							.outputWidth (srcDx)
-							.realRange   (config.maxReal - srcDx * config.xStep,      config.maxReal)
-							.outputHeight(config.outputHeight)
-							.imgRange    (config.minImaginary, config.maxImaginary)
-							.build();
-					BufferedImage img2 = new FractaleRenderEngine(FractaleRenderEngine.executorServiceInstance).generateFractaleImage(nc, f, c);
-					imgs.add(img2);
-					g.drawImage(img2, config.outputWidth - srcDx, 0, null);
-				}
-				{
-					FractaleRenderConfig nc = new FractaleRenderConfig.Builder()
 							.outputWidth (config.outputWidth)
 							.realRange   (config.minReal,      config.maxReal)
-							.outputHeight(srcDy)
-							.imgRange    (config.minImaginary, config.minImaginary + srcDy * config.yStep)
+							.outputHeight(srcDy + 2)
+							.imgRange    (config.maxImaginary - (srcDy + 1) * config.yStep, config.maxImaginary)
 							.build();
 					BufferedImage img2 = new FractaleRenderEngine(FractaleRenderEngine.executorServiceInstance).generateFractaleImage(nc, f, c);
 					imgs.add(img2);
-					g.drawImage(img2, 0, 0, null);
+					g.drawImage(img2, 0, config.outputHeight - srcDy - 2, null);
 				}
-				{
-					FractaleRenderConfig nc = new FractaleRenderConfig.Builder()
-							.outputWidth (config.outputWidth)
-							.realRange   (config.minReal,      config.maxReal)
-							.outputHeight(srcDy)
-							.imgRange    (config.maxImaginary - srcDy * config.yStep, config.maxImaginary)
-							.build();
-					BufferedImage img2 = new FractaleRenderEngine(FractaleRenderEngine.executorServiceInstance).generateFractaleImage(nc, f, c);
-					imgs.add(img2);
-					g.drawImage(img2, 0, config.outputHeight - srcDy, null);
-				}
-//				g.setColor(Color.RED);
-//				g.drawRect(0, 0, srcDx, config.outputHeight);
-//				g.drawRect(config.outputWidth - srcDx, 0, srcDx, config.outputHeight);
-//				g.drawRect(0, 0, config.outputWidth, srcDy);
-//				g.drawRect(0, config.outputHeight - srcDy, config.outputWidth, srcDy);
-				
-//				BufferedImagePool.instance.free(img2);
-//				g.drawImage(img, 0, 0, null);
 			}
 		    g.dispose();
 		    imgX = 0;
@@ -527,18 +646,19 @@ class ImagePanel extends JPanel {
 		public void mouseDragged(MouseEvent e) {
 			int wdx = e.getX() - lastX;
 			int wdy = e.getY() - lastY;
-			System.out.println("Je suis dragué  " + wdx + " x " + wdy);
-			// update drawing
+//			System.out.println("Je suis dragué  " + wdx + " x " + wdy);
+//			// update drawing
 			double wfdx = config.xStep * wdx;
 			double wfdy = config.yStep * wdy;
-			// redraw();
-			
-			
-			
-			config.maxReal -= wfdx;
-			config.minReal -= wfdx;
-			config.maxImaginary -= wfdy;
-			config.minImaginary -= wfdy;
+//			// redraw();
+//			
+//			
+//			
+//			config.maxReal -= wfdx;
+//			config.minReal -= wfdx;
+//			config.maxImaginary -= wfdy;
+//			config.minImaginary -= wfdy;
+			config.move(- wfdx, - wfdy);
 			
 			BufferedImage img3 = BufferedImagePool.instance.get(config.outputWidth, config.outputHeight);
 
@@ -567,7 +687,7 @@ class ImagePanel extends JPanel {
 						.build();
 				BufferedImage img2 = new FractaleRenderEngine(FractaleRenderEngine.executorServiceInstance).generateFractaleImage(nc, f, c);
 				allocImages.add(img2);								
-				g.drawImage(img2, 0, config.outputHeight + wdy , null);
+				g.drawImage(img2, 0, config.outputHeight + wdy - 1 , null);
 			}
 			if (wdx > 0) {
 				FractaleRenderConfig nc = new FractaleRenderConfig.Builder()
@@ -588,7 +708,7 @@ class ImagePanel extends JPanel {
 						.build();
 				BufferedImage img2 = new FractaleRenderEngine(FractaleRenderEngine.executorServiceInstance).generateFractaleImage(nc, f, c);
 				allocImages.add(img2);								
-				g.drawImage(img2, config.outputWidth + wdx, 0, null);
+				g.drawImage(img2, config.outputWidth + wdx - 1, 0, null);
 			}
 
 			imgY = 0;
@@ -622,27 +742,35 @@ class ImagePanel extends JPanel {
 	
 	int imgX;
 	int imgY;
-//	Thread calculEnCours;
 	AsynchFractalEngine calculEnCours;
 	
 	BufferedImage img;
 	FractaleRenderConfig config;
 	JolieFonction f;
 	BiFunction<FractaleRenderConfig, Integer, Color> c;
-	WindowFitMode wfm;
-	double zoom;
 	
-//	TransitionMode tMode;
+//	FractaleRenderConfig refConfig;
+	WindowFitMode wfm;
+	
+	double zoom;
 	
 	EventHandlerDelegator ehd;
 	
+//	double zoomSpeed = 1.1;
+	double zoomSpeed = 1.03;
+
 	public ImagePanel(FractaleRenderConfig config, JolieFonction  f, BiFunction<FractaleRenderConfig, Integer, Color> c ) { 
 		this.img = new FractaleRenderEngine(FractaleRenderEngine.executorServiceInstance).generateFractaleImage(config, f, c);
 		
 		this.imgX = this.imgY = 0;
 		this.calculEnCours = null;
 		
+		this.wfm = WindowFitMode.FILL;
+		
+//		this.refConfig = config;
+//		this.config = getCurrentConfig();
 		this.config = config;
+				
 		this.f = f;
 		this.c = c;
 		this.zoom = 1;
@@ -657,8 +785,17 @@ class ImagePanel extends JPanel {
 		
 		setOpaque(true);
 		setBackground(Color.BLACK);
+//		setBackground(Color.GREEN);
 		
-		
+		addComponentListener(new ComponentAdapter() {
+	        public void componentResized(ComponentEvent e) {
+	        	System.out.println("resize " + getWidth() + "x" + getHeight());
+	        	config.setOutputSize(getWidth(),getHeight());
+	        	setWindowFitMode(wfm);
+	        	asynchUpdate();
+	        }
+		});
+
 		
 //		addMouseWheelListener(e -> {
 //			if (true) return;
@@ -985,8 +1122,9 @@ class ImagePanel extends JPanel {
 	}
 
 	public void paintComponent(Graphics g) {
-		int w = getWidth(); // * 3;
-		int h = getHeight(); // * 3;
+		System.out.println("paint");
+		int w = img.getWidth();
+		int h = img.getHeight();
 		int fw = w;
 		int fh = h;
 //		if (this.squareRendering) { 
@@ -996,6 +1134,8 @@ class ImagePanel extends JPanel {
 			break;
 		case MAXFIT : 
 			fw = fh = Math.max(w, h);
+//			fw = w;
+//			fh = h;
 			break;
 		case FILL : 
 			fw = w;
@@ -1062,7 +1202,7 @@ class ImagePanel extends JPanel {
 		redraw();
 	}
 
-
+	
 	public void setIterations(int iterations) {
 		this.config.maxIterations = iterations;
 		redraw();
@@ -1093,9 +1233,65 @@ class ImagePanel extends JPanel {
 
 	public void setWindowFitMode(WindowFitMode wfm) {
 		this.wfm = wfm;
-//		img = null;
-//		repaint();
+		int w = getWidth();
+		int h = getHeight();
+		switch (wfm) { 
+		case MINFIT :
+			if (w > h)
+				config.setOutputSize(h, h);
+			else 
+				config.setOutputSize(w, w);
+			break;
+		case MAXFIT : 
+			if (w > h)
+				config.setOutputSize(w, w);
+			else
+				config.setOutputSize(h, h);
+//			config.setOutputSize(w, h);
+//			if (w > h)
+//				config.scale(1, ((double)h) / w);
+//			else
+//				config.scale(1, ((double)w) / h);
+			break;
+		case FILL : 
+			config.setOutputSize(w, h);
+			break;
+		}
 		redraw();
 	}
+	
+//	private FractaleRenderConfig getCurrentConfig() {
+//		switch (wfm) { 
+//		case MINFIT :
+//			return new FractaleRenderConfig.Builder()
+//					.maxIterations(this.refConfig.maxIterations)
+//					.outputWidth  (Math.min(this.refConfig.outputWidth, this.refConfig.outputHeight))
+//					.outputHeight (Math.min(this.refConfig.outputWidth, this.refConfig.outputHeight))
+//					.realRange    (this.refConfig.minReal,      this.refConfig.maxReal)
+//					.imgRange     (this.refConfig.minImaginary, this.refConfig.maxImaginary)
+//					.build();
+//		case MAXFIT :
+//			return new FractaleRenderConfig.Builder()
+//					.maxIterations(this.refConfig.maxIterations)
+//					.outputWidth  (Math.max(this.refConfig.outputWidth, this.refConfig.outputHeight))
+//					.outputHeight (Math.max(this.refConfig.outputWidth, this.refConfig.outputHeight))
+//					.realRange    (this.refConfig.minReal,      this.refConfig.maxReal)
+//					.imgRange     (this.refConfig.minImaginary, this.refConfig.maxImaginary)
+//					.build();
+//		case FILL : 
+//			return new FractaleRenderConfig.Builder()
+//					.maxIterations(this.refConfig.maxIterations)
+//					.outputWidth  (this.refConfig.outputWidth)
+//					.outputHeight (this.refConfig.outputHeight)
+//					.realRange    (this.refConfig.minReal,      this.refConfig.maxReal)
+//					.imgRange     (this.refConfig.minImaginary, this.refConfig.maxImaginary)
+//					.build();
+//		default: throw new RuntimeException("unknown fill mode " + wfm);
+//		}
+//	}
+	public double scaleFromMouseWheel(int wheelRotations) {
+		return Math.pow(this.zoomSpeed, wheelRotations);
+	}
+	
 
 }

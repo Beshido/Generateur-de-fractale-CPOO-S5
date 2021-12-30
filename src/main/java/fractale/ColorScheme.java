@@ -64,13 +64,13 @@ public class ColorScheme {
 
 	public static List<ColorScheme> getAllSchemes() { 
 		return Arrays.asList(
-				new ColorScheme("ColorScheme BLEU", ColorScheme::colorScheme0),
-				new ColorScheme("ColorScheme GREEN", ColorScheme::colorScheme1),
-				new ColorScheme("ColorScheme RED", ColorScheme::colorScheme2),
-				new ColorScheme("ColorScheme FLAMBOYANT", ColorScheme::colorScheme3),
+				new ColorScheme("BLEU", ColorScheme::colorScheme0),
+				new ColorScheme("GREEN", ColorScheme::colorScheme1),
+				new ColorScheme("RED", ColorScheme::colorScheme2),
+				new ColorScheme("FLAMBOYANT", ColorScheme::colorScheme3),
 				quadBzScheme("BGR", Color.BLUE, Color.GREEN, Color.RED),
-				quadBzScheme("BkGR", Color.BLACK, Color.GREEN, Color.RED),
-				quadBzScheme("BkRY", Color.BLACK, Color.RED, Color.YELLOW),
+				quadBzScheme("KGR", Color.BLACK, Color.GREEN, Color.RED),
+				quadBzScheme("KRY", Color.BLACK, Color.RED, Color.YELLOW),
 				cubicBzScheme("KBGR", Color.BLACK, Color.BLUE, Color.GREEN, Color.RED)
 				);
 	}
