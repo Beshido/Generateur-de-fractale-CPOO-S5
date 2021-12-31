@@ -4,8 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
+
 class Element { 
+	
 	String contenu;
+	
 	static class EVar extends Element {
 
 		String name;
@@ -29,9 +32,6 @@ class Element {
 		}
 	}
 
-	//	static class EParen extends Element {
-	//		
-	//	}
 	static class OpenParen extends Element { 
 
 	}
@@ -97,6 +97,11 @@ class Expression {
 	}
 }
 
+/**
+ * Parseur de polynomes de n'importe quel degres. 
+ * <p>Permet de transformer la fonction rentree sous forme de texte en fonction applicable sur des 
+ * nombres complexes. </p>
+ */
 public class PolyParser {
 
 	// parse apres "f(z) = " z*z+1-i
@@ -112,15 +117,15 @@ public class PolyParser {
 		this.es = es;
 		Expression e = parseExpr();
 		return z -> evalExpr(e,z);
-		// throw new RuntimeException();
 	}
+	
 	public Function<Complex, Complex> parse2(String text) {
 		List<Element> es = textDestructor(text);
 		this.es = es;
 		Expression e = parseExpr();
 		return mkFun(e);
-		// throw new RuntimeException();
 	}
+	
 	public List<Element> textDestructor(String text) { 
 		List<Element> es = new ArrayList<>();
 		int index = 0;
@@ -193,7 +198,6 @@ public class PolyParser {
 				Expression f = parseMulDiv();
 				e = new Expression.Sub(e, f);
 			} else {
-//				throw new RuntimeException("parsePlusMinus : " + es);
 				return e;
 			}	
 		}
@@ -201,7 +205,6 @@ public class PolyParser {
 	}
 	
 	public Expression parseMulDiv() {
-//		System.out.println("parseMulDiv " + es);
 		Expression e = parseNumOrVarOrParen();
 		while (!es.isEmpty()) {
 			Element o = es.get(0);
@@ -214,7 +217,6 @@ public class PolyParser {
 				Expression f = parseNumOrVarOrParen();
 				e = new Expression.Div(e, f);
 			} else {
-				// throw new RuntimeException("parseMulDiv " + o + " / " + es);
 				return e;
 			}	
 		}

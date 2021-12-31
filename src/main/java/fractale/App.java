@@ -32,47 +32,44 @@ enum WindowFitMode {
 
 public class App {
 
-	//	static final int MAX_ITER = 1000;
-
-
 	public String getGreeting() {
 		return "Hello world.";
 	}
 
+	// Fonction donnee dans l'enonce 
 	// f (z) = z^2 + c avec c = −0.7269 + 0.1889i
+
 	public static Complex f0(Complex c) {
 		return c.mul(c).add(new Complex(-0.7269, 0.1889));
 	}
 
 	public static void main(String[] args) throws IOException {
-		System.out.println(new App().getGreeting());
-//		FractaleRenderConfig c = FractaleRenderConfig.createSimple(1001, -1, 1);
-		//		BufferedImage img = generateFractaleImage(c, App::f0, App::colorScheme1);
-		//		ImageIO.write(img, "PNG", new File("MyFile.png"));
 		main_(args);
 	}
-	
+
 	/**
-	 * Create the GUI and show it.  For thread safety,
-	 * this method should be invoked from the
-	 * event-dispatching thread.
+	 * Fonction de lancement du GUI (Graphic User Interface).
 	 */
 	private static void createAndShowGUI() {
-		//Create and set up the window.
+		//Set up de la fenetre d'affichage. 
 		JFrame frame = new JFrame("Fractale rendering");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+		//Generation de la fractale et son affichage. 
 		FractaleRenderConfig c = FractaleRenderConfig.createSimple(1001, -1, 1);
-		//        BufferedImage img = generateFractaleImage(c, App::f0, ColorScheme::colorScheme1);
 		ImagePanel imagePanel = new ImagePanel(c, JolieFonction.getJoliesFonctions().get(0), ColorScheme::colorScheme0);
 		imagePanel.setPreferredSize(new Dimension(1001, 1001));
 		frame.getContentPane().add(imagePanel, BorderLayout.CENTER);
-		//imagePanel.setBackground(Color.GREEN);
+
+		//Set up de la fenetre de controle. 
 		JFrame frame2 = new JFrame("Fractale controls");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		JPanel leftPanel = new JPanel();
 		leftPanel.setLayout(new GridLayout(0, 1));
 		frame2.getContentPane().add(leftPanel, BorderLayout.WEST);
-		
+
+		//Selection du systeme de "transition" (la faeon dont on vas generer les bords de la 
+		//fractale en dehors de l'ecran, lors d'un deplacement).
 		JComboBox<ImagePanel.TransitionMode> trMode = new JComboBox<>(ImagePanel.TransitionMode.values());
 		trMode.addActionListener(e ->  {
 			System.out.println("selected : " + trMode.getSelectedItem());
@@ -80,7 +77,8 @@ public class App {
 		});
 		trMode.setBorder(BorderFactory.createTitledBorder("transition interaction"));
 		leftPanel.add(trMode);
-		
+
+		//Selection de la couleur du rendu de la fractale.
 		JComboBox<ColorScheme> colorScheme = new JComboBox<>(ColorScheme.getAllSchemes().toArray(new ColorScheme[2]));
 		colorScheme.addActionListener(e ->  {
 			System.out.println("selected : " + colorScheme.getSelectedItem());
@@ -88,36 +86,17 @@ public class App {
 		});
 		colorScheme.setBorder(BorderFactory.createTitledBorder("color scheme"));
 		leftPanel.add(colorScheme);
-		
-//		JTextField realNumber = new JTextField();
-//		JTextField imaginaryNumber = new JTextField();  
-//		JButton generator = new JButton("Générer fractale");
-//		generator.addActionListener(e -> {
-//			final double real = Double.parseDouble(realNumber.getText());
-//			final double imaginary = Double.parseDouble(imaginaryNumber.getText());
-//			Function <Complex, Complex> f = (Complex x) -> x.mul(x).add(new Complex(real, imaginary));
-//			imagePanel.setFunction(f);
-//		});
-//		leftPanel.add(realNumber);
-//		leftPanel.add(imaginaryNumber);
-//		leftPanel.add(generator);
-//		JComboBox<Integer> iterations = new JComboBox<>(new Integer[] { 100, 500, 1000 });
-//		leftPanel.add(iterations);
-//		iterations.addActionListener(e -> {
-//			imagePanel.setIterations((Integer)iterations.getSelectedItem());
-//		});
 
+		//Selection du mode de remplissage de la fenetre d'affichage avec l'image de la fractale. 
 		JComboBox<WindowFitMode> squareRender = new JComboBox<>(WindowFitMode.values());		
 		leftPanel.add(squareRender);
 		squareRender.addActionListener(e -> {
-			// imagePanel.setSquareRendering(squareRender.isSelected());
 			imagePanel.setWindowFitMode((WindowFitMode)squareRender.getSelectedItem());
 		});
 		squareRender.setBorder(BorderFactory.createTitledBorder("image fit mode"));
 		squareRender.setSelectedItem(WindowFitMode.FILL);
-		
-		
-//		squareRender.setSelected(false);
+
+		//Zone de texte permettant de rentrer sa fonction.
 		JTextField function = new JTextField();
 		function.setBorder(BorderFactory.createTitledBorder("texte fonction"));
 		function.addKeyListener(new KeyListener() {
@@ -136,7 +115,7 @@ public class App {
 			public void keyTyped(KeyEvent arg0) {
 				updateFunction();
 			}
-			
+
 			void updateFunction() {
 				try {
 					imagePanel.setFunction(new JolieFonction(function.getText()));
@@ -145,16 +124,44 @@ public class App {
 					function.setBackground(Color.RED);
 				}
 			}
-			
+
 		});
 		leftPanel.add(function);
-		
-//		JButton generatorFun = new JButton("Générer fonction");
-//		generatorFun.addActionListener(e -> {
-//			imagePanel.setFunction(new JolieFonction(function.getText()));
-//		});
-//		leftPanel.add(generatorFun);
-		
+
+		//Zone de texte permettant de fixer le nombre max d'iterations
+				JTextField iterations = new JTextField();
+				iterations.setBorder(BorderFactory.createTitledBorder("selection iterations"));
+				iterations.setText(Integer.toString(imagePanel.config.maxIterations));
+				iterations.addKeyListener(new KeyListener() {
+
+					@Override
+					public void keyPressed(KeyEvent arg0) {
+						updateFunction();
+					}
+
+					@Override
+					public void keyReleased(KeyEvent arg0) {
+						updateFunction();
+					}
+
+					@Override
+					public void keyTyped(KeyEvent arg0) {
+						updateFunction();
+					}
+
+					void updateFunction() {
+						try {
+							imagePanel.setMaxIteration(Integer.parseInt(iterations.getText()));
+							iterations.setBackground(Color.WHITE);
+						} catch (Exception e) {
+							iterations.setBackground(Color.RED);
+						}
+					}
+
+				});
+				leftPanel.add(iterations);
+
+		// Possibilite d'utiliser un preset de fonctions enregistrees dans les "JoliesFonction".
 		JComboBox<JolieFonction> joliesFonction = new JComboBox<>(JolieFonction.getJoliesFonctions().toArray(new JolieFonction[0]));
 		joliesFonction.addActionListener(e ->  {
 			JolieFonction f = (JolieFonction)joliesFonction.getSelectedItem();
@@ -165,7 +172,8 @@ public class App {
 		joliesFonction.setSelectedIndex(0);
 		joliesFonction.setBorder(BorderFactory.createTitledBorder("fonction predefinie"));
 		leftPanel.add(joliesFonction);
-		
+
+		//Selection de la puissance du zoom.
 		JComboBox<Double> zoomSpeed = new JComboBox<>(new Double[] { 1.01, 1.03, 1.05, 1.07, 1.1, 1.2 });
 		zoomSpeed.addActionListener(e ->  {
 			imagePanel.zoomSpeed = (Double)zoomSpeed.getSelectedItem();
@@ -174,14 +182,17 @@ public class App {
 		zoomSpeed.setSelectedIndex(5);
 		leftPanel.add(zoomSpeed);
 
-		//Display the window.
+		//Affichage de la fenetre 
 		frame.pack();
 		frame.setVisible(true);
 		frame2.pack();
 		frame2.setVisible(true);
 	}
 
+
 	public static void main_(String[] args) throws IOException {
+		// A l'appel de fractale.jar, si des arguments sont donnes alors on genere un .png de la fractale
+		// et un .txt contenant les differentes variables. 
 		if (args.length > 0) {
 			System.out.println("LA GROSSE IMAGE SUR DISQUE");
 			if (args.length != 9) {
@@ -198,6 +209,8 @@ public class App {
 				ColorScheme col     = ColorScheme.getAllSchemes().get(Integer.parseInt(args[7]));
 				String fileName     = args[8];
 				JolieFonction f = new JolieFonction(fun);
+				
+				//Creation de la config
 				FractaleRenderConfig c = new FractaleRenderConfig.Builder()
 						.outputWidth(outputWidth)
 						.outputHeight(outputHeight)
@@ -211,21 +224,26 @@ public class App {
 				g.setColor(Color.WHITE);
 				FractaleRenderEngine.information(g, c, f);
 				g.dispose();
+				
+				//Ecriture de l'image en .png
 				ImageIO.write(img, "PNG", new File(fileName + ".png"));
+				
+				//Ecriture d'un .txt avec les parametres de la fractale.
 				try (PrintStream ps = new PrintStream(fileName + ".txt")) {
-		            ps.println("fonction    : " + fun);
-		            ps.println("réel        : " + minReal + " " + maxReal);
-		            ps.println("imaginaire  : " + minImg + " " + maxImg);
-		            ps.println("taile       : " + outputWidth + "x" + outputHeight);
-		            ps.println("colorscheme : " + col.name);
-		            ps.flush();
-		        } catch (FileNotFoundException e) {
-		            e.printStackTrace();
-		        }
+					ps.println("fonction    : " + fun);
+					ps.println("réel        : " + minReal + " " + maxReal);
+					ps.println("imaginaire  : " + minImg + " " + maxImg);
+					ps.println("taile       : " + outputWidth + "x" + outputHeight);
+					ps.println("colorscheme : " + col.name);
+					ps.flush();
+				} catch (FileNotFoundException e) {
+					e.printStackTrace();
+				}
 			}
+
+
+			//Si fractale.jar est appelle sans arguments alors on lance le GUI.
 		} else {
-			//Schedule a job for the event-dispatching thread:
-			//creating and showing this application's GUI.
 			javax.swing.SwingUtilities.invokeLater(new Runnable() {
 				public void run() {
 					createAndShowGUI();

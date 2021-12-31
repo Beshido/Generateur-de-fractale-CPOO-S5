@@ -4,6 +4,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
+/**
+ * Class de stockage des focntions notables. 
+ * <p> La defintion de la fonction peut être rentrée sous forme de String grace au : {@link PolyParser}. <p>
+ */
 public class JolieFonction {
 	private final String name;
 	private final String def;
@@ -29,6 +33,10 @@ public class JolieFonction {
 	public String getName() { 
 		return name;
 	}
+	/**
+	 * Fonction revoyant les fonctions sauvegardées. 
+	 * @return La liste des fonctions sauvegardées. 
+	 */
 	public static List<JolieFonction> getJoliesFonctions () { 
 	return Arrays.asList(
 			new JolieFonction("julia", "z * z -0.7269 + 0.1889i"),

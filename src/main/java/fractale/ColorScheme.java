@@ -1,10 +1,16 @@
 package fractale;
 
 import java.awt.Color;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.BiFunction;
 
+
+/**
+ * Generation de couleur en utilisation la courbe de Bezier quadratique.
+ * <p>Courbe de Bezier :  <a href="https://fr.wikipedia.org/wiki/Courbe_de_B%C3%A9zier">Wiki courbe de Beziers</a></p>.
+ */
 class ColorBezierQuad {
 	
 	private final Color c0, c1, c2;
@@ -29,6 +35,11 @@ class ColorBezierQuad {
 	
 }
 
+
+/**
+ * Generation de couleur en utilisation la courbe de Bezier cubique.
+ * <p> Courbe de Bezier :  <a href="https://fr.wikipedia.org/wiki/Courbe_de_B%C3%A9zier">Wiki courbe de Beziers</a> </p>.
+ */
 class ColorBezierCube {
 	private final Color c0, c1, c2, c3;
 	
@@ -53,6 +64,10 @@ class ColorBezierCube {
 
 }
 
+
+/**
+ * Les diff�rents th�mes de couleur.
+ */
 public class ColorScheme {
 	String name;
 	BiFunction<FractaleRenderConfig, Integer, Color> f;
@@ -62,6 +77,10 @@ public class ColorScheme {
 		this.f    = f ;
 	}
 
+	/**
+	 * Renvoie la listes des differents themes de couleur.
+	 * @return list des ColorSchemes.
+	 */
 	public static List<ColorScheme> getAllSchemes() { 
 		return Arrays.asList(
 				new ColorScheme("BLEU", ColorScheme::colorScheme0),
@@ -74,25 +93,20 @@ public class ColorScheme {
 				cubicBzScheme("KBGR", Color.BLACK, Color.BLUE, Color.GREEN, Color.RED)
 				);
 	}
-
+	//Les differents exemples fournit dans le pdf. 
+	//	return new Color(0, 0, Math.min(255, iterations));
+	//	return new Color(((iterations / 256) % 256) * 64, 0, iterations % 256);
+	
 	public static Color colorScheme0(FractaleRenderConfig cfg, int iterations) {
-		//		return new Color(0, 0, Math.min(255, iterations));
-		//		return new Color(((iterations / 256) % 256) * 64, 0, iterations % 256);
 		return new Color(0, 0, (255*iterations)/cfg.maxIterations);
 	}
 	public static Color colorScheme1(FractaleRenderConfig cfg, int iterations) {
-		//		return new Color(0, 0, Math.min(255, iterations));
-		//		return new Color(((iterations / 256) % 256) * 64, 0, iterations % 256);
 		return new Color(0,(255*iterations)/cfg.maxIterations,0);
 	}
 	public static Color colorScheme2(FractaleRenderConfig cfg, int iterations) {
-		//		return new Color(0, 0, Math.min(255, iterations));
-		//		return new Color(((iterations / 256) % 256) * 64, 0, iterations % 256);
 		return new Color((255*iterations)/cfg.maxIterations, 0, 0);
 	}
 	public static Color colorScheme3(FractaleRenderConfig cfg, int iterations) {
-		//		return new Color(0, 0, Math.min(255, iterations));
-		//		return new Color(((iterations / 256) % 256) * 64, 0, iterations % 256);
 		return new Color(Color.HSBtoRGB((float)iterations/cfg.maxIterations, 0.7f, 0.7f));
 	}
 	
