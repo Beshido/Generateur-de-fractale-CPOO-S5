@@ -6,7 +6,7 @@ import java.util.function.Function;
 
 /**
  * Class de stockage des focntions notables. 
- * <p> La defintion de la fonction peut être rentrée sous forme de String grace au : {@link PolyParser}. <p>
+ * <p> La defintion de la fonction peut ï¿½tre rentrï¿½e sous forme de String grace au : {@link PolyParser}. <p>
  */
 public class JolieFonction {
 	private final String name;
@@ -34,13 +34,14 @@ public class JolieFonction {
 		return name;
 	}
 	/**
-	 * Fonction revoyant les fonctions sauvegardées. 
-	 * @return La liste des fonctions sauvegardées. 
+	 * Fonction revoyant les fonctions sauvegardï¿½es. 
+	 * @return La liste des fonctions sauvegardï¿½es. 
 	 */
 	public static List<JolieFonction> getJoliesFonctions () { 
 	return Arrays.asList(
 			new JolieFonction("julia", "z * z -0.7269 + 0.1889i"),
-			new JolieFonction("saut interstellaire", "z*z -1.401155")
+			new JolieFonction("saut interstellaire", "z*z -1.401155"),
+			new JolieFonction("Newton degre 5 (25 iterations) ", "z * z * z * z -1")
 			);
 	}
 			
